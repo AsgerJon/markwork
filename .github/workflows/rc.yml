@@ -85,7 +85,40 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-      # Only reached if the publish above succeeded: advance the
+      # PyPI can return success on upload while a backend or CDN incident
+      # quietly drops the file, so the workflow goes green but nothing is
+      # served. Poll until the version is actually live, and fail if it
+      # never appears, so the bump and tag below never run on a phantom
+      # publish.
+      - name: Verify the release is live on PyPI
+        run: |
+          python - <<'PY'
+          import json, os, sys, time
+          import urllib.error, urllib.request
+          version = os.environ["VERSION_INFO"]
+          want = "".join(c for c in version.lower() if c.isalnum())
+          url = "https://pypi.org/pypi/markwork/json"
+          headers = {"User-Agent": "markwork-release-check"}
+          deadline = time.time() + 600
+          #  Any transient error (a 404 before the file is served, a 5xx
+          #  during an incident, a timeout) just means "not yet": keep
+          #  polling until the deadline, then fail.
+          while time.time() < deadline:
+            try:
+              request = urllib.request.Request(url, headers=headers)
+              data = json.load(urllib.request.urlopen(request, timeout=20))
+              keys = data.get("releases", {})
+              if any("".join(c for c in k.lower() if c.isalnum()) == want
+                     for k in keys):
+                print("Confirmed %s is live on PyPI." % version)
+                sys.exit(0)
+            except (urllib.error.URLError, TimeoutError, ValueError):
+              pass
+            time.sleep(20)
+          sys.exit("%s never appeared on PyPI." % version)
+          PY
+
+      # Only reached once the release is confirmed live: advance the
       # counters in VERSION, then commit VERSION + the stamped files.
       - name: Bump version counters
         run: python version_bump.py rc

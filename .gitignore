@@ -76,7 +76,7 @@ docs/_source/
 # Build scaffolding from the seed: the brief, the worktoy reference files
 # and the original root index template were adapted into this repository
 # (docs/index.rst is the real one) and are not shipped.
-INSTRUCTIONS.md
+markwork_INSTRUCTIONS.md
 reference/
 /index.rst
 
@@ -228,3 +228,4 @@ __marimo__/
 
 # Claude
 CLAUDE.md
+/worktoy_readme.md
