@@ -1,0 +1,64 @@
+/* worktoy docs: highlight the source line jumped to by a "Used in"
+ * link. Pygments' linespans option wraps each code line in
+ * <span id="line-N">; when the URL fragment is #line-N that span
+ * matches :target, and we give it a warm full-width band plus a
+ * left accent bar. The colour is semi-transparent so it reads on
+ * both furo's light and dark themes. */
+
+.highlight span[id^="line-"]:target {
+  display: inline-block;
+  width: 100%;
+  background-color: rgba(255, 213, 79, 0.35);
+  box-shadow: inset 3px 0 0 #ffb300;
+}
+
+/* Version switcher injected by _static/versions.js on the multi-version
+ * (GitHub Pages) build. A small fixed box, bottom-right. Uses furo's
+ * CSS variables with fallbacks so it reads in light and dark mode. */
+
+.version-switcher {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  background: var(--color-background-secondary, #fff);
+  color: var(--color-foreground-primary, #000);
+  border: 1px solid var(--color-background-border, #ccc);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.version-switcher select {
+  font-size: 0.85rem;
+}
+
+/* Go-to-definition links injected into the rendered source by
+ * docs/_gen.py around each name imported from a documented worktoy
+ * symbol. The syntax colour lives on the inner Pygments span, so the
+ * anchor keeps it and only adds a faint dotted underline that thickens on
+ * hover, signalling "click to jump to where this is defined". */
+
+.highlight a.srcref {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+}
+
+.highlight a.srcref:hover {
+  border-bottom-style: solid;
+  background-color: rgba(255, 213, 79, 0.25);
+}
+
+/* External targets (a name's definition on docs.python.org: standard
+ * library members and builtins) are marked with a dashed underline to set
+ * them apart from the dotted in-project links. */
+
+.highlight a.srcref-ext {
+  border-bottom-style: dashed;
+}
+

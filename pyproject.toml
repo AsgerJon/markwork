@@ -1,0 +1,56 @@
+#  Apache-2.0 license
+#  Copyright (c) 2026 Asger Jon Vistisen
+
+[build-system]
+requires = ["setuptools>=69.5.1", "wheel>=0.43.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "markwork"
+version = "0.1.0"
+description = "Sphinx docs without autodoc: your source, made click-through."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Asger Jon Vistisen", email = "asgerjon2@gmail.com" }]
+keywords = ["sphinx", "documentation", "autodoc", "pygments", "source"]
+dependencies = [
+  "sphinx>=7",
+  "pygments",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: Sphinx :: Extension",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Documentation :: Sphinx",
+  "Topic :: Software Development :: Documentation",
+]
+
+[project.urls]
+Homepage = "https://github.com/AsgerJon/markwork"
+Repository = "https://github.com/AsgerJon/markwork"
+Issues = "https://github.com/AsgerJon/markwork/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+markwork = ["_static/*.css"]
+
+[tool.coverage.run]
+branch = true
+source = ["markwork", "tests"]
+#  The live-anchor check hits docs.python.org and is skipped offline, so
+#  it is not part of the branch-coverage accounting.
+omit = ["tests/test_network_anchors.py"]
+
+[tool.coverage.report]
+show_missing = true

@@ -1,0 +1,190 @@
+# LTS: the public, official release button. Publishes the next official
+# version (X.Y.Z) to PyPI as a full release and deploys the GitHub Pages
+# docs. Manual trigger only.
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - { python-version: '3.10', os: ubuntu-latest }
+          - { python-version: '3.11', os: ubuntu-latest }
+          - { python-version: '3.12', os: ubuntu-latest }
+          - { python-version: '3.13', os: ubuntu-latest }
+          - { python-version: '3.14', os: ubuntu-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest pytest-cov
+      - name: Run tests
+        run: pytest tests
+      - name: Coverage (3.14 only)
+        if: ${{ matrix.python-version == '3.14' }}
+        run: |
+          pytest tests --cov=markwork --cov=tests --cov-branch \
+            --cov-report=xml
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.python-version == '3.14' }}
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: AsgerJon/markwork
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # trusted publishing (OIDC) to PyPI
+      contents: write   # push the version changes and cut the release
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      # Compute the official version from VERSION and expose it as
+      # VERSION_INFO in the environment for the steps below.
+      - name: Resolve next version
+        run: python version_get.py lts VERSION_INFO
+
+      # Write VERSION_INFO into pyproject.toml (the build reads its
+      # version from there) and into src/markwork/__init__.py (so
+      # 'markwork.__version__' matches the published version). docs/conf.py
+      # reads the version straight from the stamped pyproject.toml.
+      - name: Stamp version into pyproject and package
+        run: |
+          python - <<'PY'
+          import os
+          version = os.environ["VERSION_INFO"]
+          targets = [
+              ("pyproject.toml", "version", 'version = "%s"'),
+              ("src/markwork/__init__.py", "__version__",
+               "__version__ = \"%s\""),
+          ]
+          for path, prefix, template in targets:
+              lines = open(path, encoding="utf-8").read().splitlines()
+              for i, line in enumerate(lines):
+                  if line.lstrip().startswith(prefix) and "=" in line:
+                      lines[i] = template % version
+                      break
+              body = "\n".join(lines) + "\n"
+              open(path, "w", encoding="utf-8").write(body)
+          PY
+
+      - name: Build
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      # Only reached if the publish above succeeded: advance the
+      # counters in VERSION, then commit VERSION + the stamped files.
+      - name: Bump version counters
+        run: python version_bump.py lts
+
+      - name: Commit version changes
+        run: |
+          git config user.name "Asger Jon Vistisen"
+          git config user.email "asgerjon2@gmail.com"
+          git add VERSION pyproject.toml src/markwork/__init__.py
+          git commit -m "LTS ${{ env.VERSION_INFO }}"
+          git push origin HEAD:${{ github.ref }}
+
+      - name: GitHub release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          tag: ${{ env.VERSION_INFO }}
+          name: ${{ env.VERSION_INFO }}
+          prerelease: false
+          generateReleaseNotes: true
+
+  docs:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: write   # to delete stale Pages artifacts on a re-run
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout (full history, for tags)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+
+      - name: Build all versions
+        run: |
+          set -e
+          mkdir -p site
+          sphinx-build -b html docs site/latest
+          versions='"latest"'
+          # Build each official tag that carries its own docs config.
+          # Pre-releases (dev / rc) are skipped so Pages only shows
+          # finished versions.
+          for tag in $(git tag --sort=-version:refname); do
+            case "$tag" in *dev*|*rc*) continue;; esac
+            if git cat-file -e "$tag:docs/conf.py" 2>/dev/null; then
+              git worktree add --detach ../version-build "$tag"
+              pip install ../version-build
+              sphinx-build -b html \
+                -D release="$tag" \
+                -D version="${tag%.*}" \
+                ../version-build/docs "site/$tag"
+              git worktree remove --force ../version-build
+              versions="$versions,\"$tag\""
+            fi
+          done
+          printf '[%s]\n' "$versions" > site/versions.json
+          printf '%s%s\n' \
+            '<!doctype html>' \
+            '<meta http-equiv="refresh" content="0; url=latest/">' \
+            > site/index.html
+
+      - name: Remove stale Pages artifacts from earlier attempts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          repo="${{ github.repository }}"
+          run_id="${{ github.run_id }}"
+          gh api "repos/$repo/actions/runs/$run_id/artifacts" \
+            --jq '.artifacts[] | select(.name=="github-pages") | .id' \
+          | while read -r id; do
+              gh api -X DELETE \
+                "repos/$repo/actions/artifacts/$id" || true
+            done
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
