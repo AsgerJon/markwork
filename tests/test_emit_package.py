@@ -2,7 +2,6 @@
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
 from _support import EngineCase
 
 INIT = (
@@ -31,19 +30,18 @@ class TestEmitPackage(EngineCase):
 
   def setUp(self):
     super().setUp()
-    self.configure()
-    (self.root / "docs" / "_source").mkdir(parents=True)
+    self.out.mkdir(parents=True)
     self.write("src/demo/__init__.py", INIT)
     self.write("src/demo/subpkg/__init__.py", "__all__ = []\n")
     self.write("src/demo/leafmod.py", "leaf = 1\n")
     self.write("src/demo/things.py", "class Thing:\n  pass\n")
+    self.docs_ = self.docs()
 
   def out_files(self):
-    out = self.root / "docs" / "_source"
-    return {p.name for p in out.iterdir()}
+    return {p.name for p in self.out.iterdir()}
 
   def test_pages_and_registries(self):
-    g._emit_package(self.root / "src" / "demo")
+    self.docs_.emitPackage(self.root / "src" / "demo")
     names = self.out_files()
     self.assertIn("demo.rst", names)
     self.assertIn("demo.subpkg.rst", names)
@@ -54,7 +52,7 @@ class TestEmitPackage(EngineCase):
     self.assertNotIn("demo.Gone.rst", names)
     self.assertNotIn("demo.nothere.rst", names)
     #  The re-export registers under both the package and the module key.
-    self.assertIn(("demo", "Thing"), g.SYMBOL_PAGE)
-    self.assertIn(("demo.things", "Thing"), g.SYMBOL_PAGE)
-    self.assertIn(("demo", "Own"), g.SYMBOL_PAGE)
-    self.assertNotIn(("demo", "Gone"), g.SYMBOL_PAGE)
+    self.assertIn(("demo", "Thing"), self.docs_.__symbol_page__)
+    self.assertIn(("demo.things", "Thing"), self.docs_.__symbol_page__)
+    self.assertIn(("demo", "Own"), self.docs_.__symbol_page__)
+    self.assertNotIn(("demo", "Gone"), self.docs_.__symbol_page__)

@@ -4,7 +4,7 @@
 
 import unittest
 
-import markwork._gen as g
+from markwork.engine import tokenHtml
 
 
 class TestTokenHtml(unittest.TestCase):
@@ -12,15 +12,15 @@ class TestTokenHtml(unittest.TestCase):
   optionally inside an internal or external go-to-definition anchor."""
 
   def test_plain_no_css_no_href(self):
-    self.assertEqual(g._token_html("", "abc", ""), "abc")
+    self.assertEqual(tokenHtml("", "abc", ""), "abc")
 
   def test_css_span(self):
     self.assertEqual(
-        g._token_html("n", "abc", ""), '<span class="n">abc</span>'
+        tokenHtml("n", "abc", ""), '<span class="n">abc</span>'
     )
 
   def test_internal_href(self):
-    out = g._token_html("n", "abc", "page.html#line-3")
+    out = tokenHtml("n", "abc", "page.html#line-3")
     self.assertEqual(
         out,
         '<a class="srcref" href="page.html#line-3">'
@@ -28,7 +28,7 @@ class TestTokenHtml(unittest.TestCase):
     )
 
   def test_external_href(self):
-    out = g._token_html("", "abc", "https://docs.python.org/3/x.html")
+    out = tokenHtml("", "abc", "https://docs.python.org/3/x.html")
     self.assertIn('class="srcref srcref-ext"', out)
     self.assertIn('target="_blank"', out)
     self.assertIn('rel="noopener"', out)
@@ -36,5 +36,5 @@ class TestTokenHtml(unittest.TestCase):
   def test_escape_table_matches_pygments(self):
     #  Five markup characters escape, the apostrophe as decimal '&#39;'.
     self.assertEqual(
-        g._token_html("", "<&>\"'", ""), "&lt;&amp;&gt;&quot;&#39;"
+        tokenHtml("", "<&>\"'", ""), "&lt;&amp;&gt;&quot;&#39;"
     )

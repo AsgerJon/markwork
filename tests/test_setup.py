@@ -5,7 +5,7 @@
 import unittest
 
 import markwork
-from markwork._gen import generate
+from markwork.engine import generate
 from _support import FakeApp, FakeConfig
 
 
@@ -30,7 +30,10 @@ class TestSetup(unittest.TestCase):
   def test_stylesheet_shipped(self):
     self.assertIn("markwork.css", self.app.css_files)
     self.assertTrue(
-        any("_static" in path for path in self.app.config.html_static_path)
+        any(
+            path.endswith("etc")
+            for path in self.app.config.html_static_path
+        )
     )
 
   def test_metadata(self):

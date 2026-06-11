@@ -2,7 +2,6 @@
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
 from _support import EngineCase
 
 
@@ -14,8 +13,8 @@ class TestScanUsages(EngineCase):
 
   def setUp(self):
     super().setUp()
-    self.configure()
-    g.SYMBOL_PAGE[("demo.mod", "Thing")] = "demo.Thing"
+    self.docs_ = self.docs()
+    self.docs_.__symbol_page__[("demo.mod", "Thing")] = "demo.Thing"
     self.write("tests/__init__.py", "")
     self.write(
         "tests/test_use.py",
@@ -31,10 +30,10 @@ class TestScanUsages(EngineCase):
     )
     self.write("tests/test_broken.py", "def (:\n")
     self.write("tests/test_self.py", "from demo.mod import Thing\n")
-    g.FILE_PAGE["tests/test_self.py"] = "demo.Thing"
+    self.docs_.__file_page__["tests/test_self.py"] = "demo.Thing"
 
   def test_usage(self):
-    usage = g._scan_usages(self.root / "tests")
+    usage = self.docs_.scanUsages(self.root / "tests")
     files = usage["demo.Thing"]
     self.assertEqual(files["tests/test_use.py"], [3])
     self.assertEqual(files["tests/test_unused.py"], [1])

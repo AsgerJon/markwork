@@ -5,7 +5,7 @@
 import ast
 import unittest
 
-import markwork._gen as g
+from markwork.engine import boundAnywhere
 
 SOURCE = (
     "import mod\n"
@@ -24,5 +24,5 @@ class TestBoundAnywhere(unittest.TestCase):
   loaded name on its own is not a binding."""
 
   def test_bindings(self):
-    names = g._bound_anywhere(ast.parse(SOURCE))
+    names = boundAnywhere(ast.parse(SOURCE))
     self.assertEqual(names, {"mod", "fn", "arg", "x", "C"})

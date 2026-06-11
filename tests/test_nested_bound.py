@@ -5,7 +5,7 @@
 import ast
 import unittest
 
-import markwork._gen as g
+from markwork.engine import nestedBound
 
 SOURCE = (
     "import top\n"
@@ -26,12 +26,12 @@ class TestNestedBound(unittest.TestCase):
   at module scope are not."""
 
   def test_nested_names(self):
-    names = g._nested_bound(ast.parse(SOURCE))
+    names = nestedBound(ast.parse(SOURCE))
     self.assertEqual(
         names, {"param", "local", "sys", "inner", "Inner"}
     )
 
   def test_module_names_excluded(self):
-    names = g._nested_bound(ast.parse(SOURCE))
+    names = nestedBound(ast.parse(SOURCE))
     self.assertNotIn("top", names)
     self.assertNotIn("outer", names)

@@ -5,7 +5,6 @@ regular expression."""
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
 from _support import EngineCase
 
 FILES = {
@@ -58,16 +57,14 @@ class TestAnchors(EngineCase):
   def test_internal_anchors_resolve(self):
     for rel, text in FILES.items():
       self.write(rel, text)
-    self.configure()
-    g.generate(None)
-    out = self.root / "docs" / "_source"
+    self.docs().run()
     anchors = []
-    for path in out.iterdir():
+    for path in self.out.iterdir():
       anchors += internal_targets(path.read_text(encoding="utf-8"))
     #  There is at least one anchor to check, so the assertion is real.
     self.assertTrue(anchors)
     for stub, lineno in anchors:
-      frag = out / ("%s.frag.html" % stub)
+      frag = self.out / ("%s.frag.html" % stub)
       self.assertTrue(frag.exists(), "missing fragment for %s" % stub)
       body = frag.read_text(encoding="utf-8")
       self.assertIn('id="line-%s"' % lineno, body)

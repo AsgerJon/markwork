@@ -6,7 +6,7 @@ import unittest
 
 from pygments.token import Name, Operator
 
-import markwork._gen as g
+from markwork.engine import mergeTokens
 
 
 class TestMergeTokens(unittest.TestCase):
@@ -21,9 +21,9 @@ class TestMergeTokens(unittest.TestCase):
         (3, Name, "c"),
     ]
     self.assertEqual(
-        g._merge_tokens(stream),
+        mergeTokens(stream),
         [(0, Name, "ab"), (2, Operator, "+"), (3, Name, "c")],
     )
 
   def test_empty_stream(self):
-    self.assertEqual(g._merge_tokens([]), [])
+    self.assertEqual(mergeTokens([]), [])

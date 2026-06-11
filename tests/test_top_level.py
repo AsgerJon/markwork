@@ -2,7 +2,7 @@
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
+from markwork.engine import topLevelDefs, topLevelDefLines
 from _support import EngineCase
 
 SOURCE = (
@@ -28,11 +28,11 @@ class TestTopLevel(EngineCase):
 
   def test_defs(self):
     path = self.write("src/demo/mod.py", SOURCE)
-    self.assertEqual(g._top_level_defs(path), {"Cls", "func", "afunc"})
+    self.assertEqual(topLevelDefs(path), {"Cls", "func", "afunc"})
 
   def test_def_lines(self):
     path = self.write("src/demo/mod.py", SOURCE)
     self.assertEqual(
-        g._top_level_def_lines(path),
+        topLevelDefLines(path),
         {"Cls": 4, "func": 8, "afunc": 12},
     )

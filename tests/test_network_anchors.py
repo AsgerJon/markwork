@@ -13,7 +13,7 @@ import unittest
 import urllib.request
 from html.parser import HTMLParser
 
-import markwork._gen as g
+from markwork.engine import buildBuiltinLinks, PYDOCS
 
 
 class _IdCollector(HTMLParser):
@@ -58,7 +58,7 @@ class TestNetworkAnchors(unittest.TestCase):
 
   def test_builtin_table(self):
     by_page = {}
-    for target in g._build_builtin_links().values():
+    for target in buildBuiltinLinks().values():
       page, anchor = _split(target)
       by_page.setdefault(page, set()).add(anchor)
     for page, anchors in by_page.items():
@@ -67,5 +67,5 @@ class TestNetworkAnchors(unittest.TestCase):
       self.assertEqual(missing, [], "%s missing %s" % (page, missing))
 
   def test_stdlib_member_anchor(self):
-    page = "%slibrary/os.html" % g._PYDOCS
+    page = "%slibrary/os.html" % PYDOCS
     self.assertIn("os.getcwd", _page_ids(page))

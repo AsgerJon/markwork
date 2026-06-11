@@ -4,7 +4,6 @@ each with its shadowing and self-page exclusions."""
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
 from _support import EngineCase
 
 FUNCS = "https://docs.python.org/3/library/functions.html#"
@@ -15,12 +14,12 @@ class TestDefinitionLinks(EngineCase):
   """Each resolution kind and each exclusion is checked through the set
   of hrefs the resolver produces for a file."""
 
-  def hrefs(self, pyfile):
-    return set(g._definition_links(pyfile).values())
+  def hrefs(self, docs, pyfile):
+    return set(docs.definitionLinks(pyfile).values())
 
   def test_project_stdlib_builtin_and_selflink(self):
-    g.SYMBOL_DEF[("demo.mod", "Thing")] = ("demo.mod.Thing", 10)
-    self.configure()
+    docs = self.docs()
+    docs.__symbol_def__[("demo.mod", "Thing")] = ("demo.mod.Thing", 10)
     pyfile = self.write(
         "src/demo/user.py",
         "from demo.mod import Thing\n"
@@ -29,16 +28,16 @@ class TestDefinitionLinks(EngineCase):
         "def run():\n"
         "  return Thing() + os.getcwd() + helper + len([])\n",
     )
-    g._record_file_page(pyfile, "demo.user")
-    hrefs = self.hrefs(pyfile)
+    docs.recordFilePage(pyfile, "demo.user")
+    hrefs = self.hrefs(docs, pyfile)
     self.assertIn("demo.mod.Thing.html#line-10", hrefs)
     self.assertIn("%sos.html" % LIB, hrefs)
     self.assertIn("%slen" % FUNCS, hrefs)
     self.assertIn("demo.user.html#line-3", hrefs)
 
   def test_self_page_star_nonstdlib_and_asname(self):
-    g.SYMBOL_DEF[("demo.mod", "Same")] = ("demo.same", 1)
-    self.configure()
+    docs = self.docs()
+    docs.__symbol_def__[("demo.mod", "Same")] = ("demo.same", 1)
     pyfile = self.write(
         "src/demo/same.py",
         "from demo.mod import Same\n"
@@ -49,8 +48,8 @@ class TestDefinitionLinks(EngineCase):
         "import json as j\n"
         "value = Same\n",
     )
-    g._record_file_page(pyfile, "demo.same")
-    hrefs = self.hrefs(pyfile)
+    docs.recordFilePage(pyfile, "demo.same")
+    hrefs = self.hrefs(docs, pyfile)
     #  A symbol documented on this very page is not linked back to itself.
     self.assertNotIn("demo.same.html#line-1", hrefs)
     #  A no-asname dotted import links by its top package.
@@ -61,39 +60,39 @@ class TestDefinitionLinks(EngineCase):
     self.assertNotIn("%spygments.html" % LIB, hrefs)
 
   def test_stdlib_from_import(self):
-    self.configure()
+    docs = self.docs()
     pyfile = self.write(
         "src/demo/fromimp.py",
         "from os import getcwd\nvalue = getcwd()\n",
     )
-    self.assertIn("%sos.html#os.getcwd" % LIB, self.hrefs(pyfile))
+    self.assertIn("%sos.html#os.getcwd" % LIB, self.hrefs(docs, pyfile))
 
   def test_shadowed_import_unlinked(self):
-    self.configure()
+    docs = self.docs()
     pyfile = self.write(
         "src/demo/shadow.py",
         "import os\nos = 5\nvalue = os\n",
     )
-    self.assertNotIn("%sos.html" % LIB, self.hrefs(pyfile))
+    self.assertNotIn("%sos.html" % LIB, self.hrefs(docs, pyfile))
 
   def test_no_bindings_and_shadowed_builtin(self):
-    self.configure()
+    docs = self.docs()
     pyfile = self.write(
         "src/demo/plain.py",
         "list = 1\nx = list\nsize = len([])\n",
     )
-    hrefs = self.hrefs(pyfile)
+    hrefs = self.hrefs(docs, pyfile)
     #  len is a live builtin; list is shadowed by the assignment.
     self.assertIn("%slen" % FUNCS, hrefs)
     self.assertNotIn("%sfunc-list" % FUNCS, hrefs)
 
   def test_syntax_error_returns_empty(self):
-    self.configure()
+    docs = self.docs()
     pyfile = self.write("src/demo/broken.py", "def (:\n")
-    self.assertEqual(g._definition_links(pyfile), {})
+    self.assertEqual(docs.definitionLinks(pyfile), {})
 
   def test_module_scope_nested_and_defline(self):
-    self.configure()
+    docs = self.docs()
     pyfile = self.write(
         "src/demo/scope.py",
         "acc = acc + 1\n"
@@ -104,8 +103,8 @@ class TestDefinitionLinks(EngineCase):
         "def run():\n"
         "  return acc + config\n",
     )
-    g._record_file_page(pyfile, "demo.scope")
-    hrefs = self.hrefs(pyfile)
+    docs.recordFilePage(pyfile, "demo.scope")
+    hrefs = self.hrefs(docs, pyfile)
     #  acc is linked from its later use, not from its own definition line.
     self.assertIn("demo.scope.html#line-1", hrefs)
     #  config is bound inside f, so it is shadowed and never linked.

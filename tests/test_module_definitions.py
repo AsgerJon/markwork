@@ -5,7 +5,7 @@
 import ast
 import unittest
 
-import markwork._gen as g
+from markwork.engine import moduleDefinitions
 
 
 class TestModuleDefinitions(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestModuleDefinitions(unittest.TestCase):
         "a, b = 3, 4\n"
         "bare: int\n"
     )
-    defs = g._module_definitions(ast.parse(source))
+    defs = moduleDefinitions(ast.parse(source))
     self.assertEqual(defs["Cls"], 1)
     self.assertEqual(defs["func"], 3)
     self.assertEqual(defs["afunc"], 5)
@@ -40,4 +40,4 @@ class TestModuleDefinitions(unittest.TestCase):
 
   def test_first_definition_wins(self):
     source = "x = 1\nx = 2\n"
-    self.assertEqual(g._module_definitions(ast.parse(source))["x"], 1)
+    self.assertEqual(moduleDefinitions(ast.parse(source))["x"], 1)

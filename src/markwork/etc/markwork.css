@@ -1,0 +1,42 @@
+/* markwork ships this one stylesheet. It is theme-independent: the
+ * rendered source is a stock Pygments block whose colours come from the
+ * active theme's Pygments style, and the rules below use inherited or
+ * fixed colours so they read on any theme, light or dark. */
+
+/* Highlight the source line jumped to by a "#line-N" link. The engine
+ * wraps each code line in <span id="line-N">; when the URL fragment is
+ * #line-N that span matches :target, and we give it a warm full-width
+ * band plus a left accent bar. The colour is semi-transparent so it
+ * reads on a light or a dark background. */
+
+.highlight span[id^="line-"]:target {
+  display: inline-block;
+  width: 100%;
+  background-color: rgba(255, 213, 79, 0.35);
+  box-shadow: inset 3px 0 0 #ffb300;
+}
+
+/* Go-to-definition links injected into the rendered source by markwork
+ * around each name, pointing at where it is defined. The syntax colour
+ * lives on the inner Pygments span, so the anchor keeps it and only adds
+ * a faint dotted underline that thickens on hover, signalling "click to
+ * jump to where this is defined". */
+
+.highlight a.srcref {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+}
+
+.highlight a.srcref:hover {
+  border-bottom-style: solid;
+  background-color: rgba(255, 213, 79, 0.25);
+}
+
+/* External targets (a name's definition on docs.python.org: standard
+ * library members and builtins) are marked with a dashed underline to set
+ * them apart from the dotted in-project links. */
+
+.highlight a.srcref-ext {
+  border-bottom-style: dashed;
+}

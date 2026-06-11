@@ -2,7 +2,6 @@
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
 from _support import EngineCase
 
 
@@ -13,8 +12,7 @@ class TestEmitTests(EngineCase):
 
   def setUp(self):
     super().setUp()
-    self.configure()
-    (self.root / "docs" / "_source").mkdir(parents=True)
+    self.out.mkdir(parents=True)
     self.write("tests/test_a.py", "def test_a():\n  pass\n")
     self.write("tests/__init__.py", "")
     self.write("tests/sub/test_b.py", "def test_b():\n  pass\n")
@@ -22,9 +20,8 @@ class TestEmitTests(EngineCase):
     (self.root / "tests" / "empty").mkdir()
 
   def test_tree(self):
-    g._emit_test_dir(self.root / "tests")
-    out = self.root / "docs" / "_source"
-    names = {p.name for p in out.iterdir()}
+    self.docs().emitTestDir(self.root / "tests")
+    names = {p.name for p in self.out.iterdir()}
     self.assertIn("tests.rst", names)
     self.assertIn("tests.test_a.rst", names)
     self.assertIn("tests.sub.rst", names)

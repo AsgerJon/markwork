@@ -1,8 +1,8 @@
-"""Tests for the whole generation run and the two entry-point paths."""
+"""Tests for the whole generation run and the Sphinx entry point."""
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
+from markwork.engine import generate
 from _support import EngineCase, FakeApp, FakeConfig
 
 FILES = {
@@ -27,16 +27,14 @@ FILES = {
 class TestRun(EngineCase):
   """A full run emits the package tree, the tests mirror, the packages
   index and the cross-references; the entry point resolves paths from a
-  Sphinx application or runs against an existing configuration."""
+  Sphinx application, and an instance may be run more than once."""
 
-  def build(self):
+  def build(self, with_tests=True):
     for rel, text in FILES.items():
-      self.write(rel, text)
+      if with_tests or not rel.startswith("tests/"):
+        self.write(rel, text)
     #  A child named in __all__ whose directory is not a package.
     (self.root / "src" / "demo" / "notpkg").mkdir(parents=True)
-
-  def out(self):
-    return self.root / "docs" / "_source"
 
   def test_generate_with_app(self):
     self.build()
@@ -44,34 +42,28 @@ class TestRun(EngineCase):
     app = FakeApp(
         self.root / "docs", self.root / "docs", FakeConfig(package="demo")
     )
-    g.generate(app)
-    packages = (self.out() / "_packages.txt").read_text(encoding="utf-8")
+    generate(app)
+    packages = (self.out / "_packages.txt").read_text(encoding="utf-8")
     #  The package is one rooted entry; its tree is reached through it.
     self.assertIn("_source/demo", packages)
     self.assertIn("_source/tests", packages)
-    self.assertTrue((self.out() / "demo.rst").exists())
-    self.assertTrue((self.out() / "demo.core.rst").exists())
-    thing = (self.out() / "demo.core.Thing.rst").read_text(
-        encoding="utf-8"
-    )
+    self.assertTrue((self.out / "demo.rst").exists())
+    self.assertTrue((self.out / "demo.core.rst").exists())
+    thing = (self.out / "demo.core.Thing.rst").read_text(encoding="utf-8")
     self.assertIn("Usage in testing", thing)
-    self.assertTrue((self.out() / "demo.core.Thing.frag.html").exists())
+    self.assertTrue((self.out / "demo.core.Thing.frag.html").exists())
 
-  def test_generate_already_configured_and_rerun(self):
+  def test_rerun_clears_existing_output(self):
     self.build()
-    self.configure()
+    docs = self.docs()
     #  First run creates the output; the second finds it and clears it,
     #  exercising both sides of the existing-output check.
-    g.generate(None)
-    g.generate(None)
-    self.assertTrue((self.out() / "_packages.txt").exists())
+    docs.run()
+    docs.run()
+    self.assertTrue((self.out / "_packages.txt").exists())
 
   def test_run_without_tests(self):
-    for rel, text in FILES.items():
-      if not rel.startswith("tests/"):
-        self.write(rel, text)
-    (self.root / "src" / "demo" / "notpkg").mkdir(parents=True)
-    self.configure()
-    g.generate(None)
-    packages = (self.out() / "_packages.txt").read_text(encoding="utf-8")
+    self.build(with_tests=False)
+    self.docs().run()
+    packages = (self.out / "_packages.txt").read_text(encoding="utf-8")
     self.assertNotIn("_source/tests", packages)

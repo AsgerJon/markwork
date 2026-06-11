@@ -4,7 +4,7 @@
 
 import unittest
 
-import markwork._gen as g
+from markwork.engine import buildBuiltinLinks
 
 
 class TestBuiltinLinks(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestBuiltinLinks(unittest.TestCase):
   dunder names are left out entirely."""
 
   def setUp(self):
-    self.links = g._build_builtin_links()
+    self.links = buildBuiltinLinks()
 
   def test_no_dunders(self):
     self.assertNotIn("__import__", self.links)

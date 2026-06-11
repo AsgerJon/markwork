@@ -60,6 +60,24 @@ The project root is taken to be the parent of the directory holding
 - All of it computed from the AST and the Pygments token stream, with no
   regular expressions anywhere in the engine.
 
+## Themes
+
+markwork is theme-independent and works with any Sphinx theme: furo,
+`sphinx_rtd_theme`, the PyData theme, the built-in alabaster, or your own.
+It is not a runtime dependency on any of them. The rendered source is a
+stock Pygments block, so its syntax colours come from the active theme's
+own Pygments style, and the bundled stylesheet uses inherited and fixed
+colours so the go-to-definition underlines and the line-jump highlight
+read on a light or a dark theme alike.
+
+These docs are built with furo as a preference, not a requirement. To
+preview them under a different installed theme, set `MARKWORK_THEME`, for
+example:
+
+```bash
+MARKWORK_THEME=alabaster sphinx-build -b html docs docs/_build/html
+```
+
 ## Licence
 
 markwork is released under the Apache License 2.0. See `LICENSE`.

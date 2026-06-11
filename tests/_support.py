@@ -1,7 +1,7 @@
 """Shared helpers for the markwork test suite: build a throwaway repo on
-disk, point the engine at it, and reset the module-level registries
-between checks. The engine keeps its filesystem roots and symbol
-registries as module globals, so each test configures them afresh."""
+disk and hand back a SourceDocs pointed at it. Engine state lives on the
+SourceDocs instance, so each test gets its own and there is nothing global
+to reset."""
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
@@ -10,15 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import markwork._gen as g
-
-
-def reset() -> None:
-  """Clear the engine's four module-level registries."""
-  g.SYMBOL_PAGE.clear()
-  g.SYMBOL_DEF.clear()
-  g.FILE_PAGE.clear()
-  g.PENDING_FRAGS.clear()
+from markwork.engine import SourceDocs
 
 
 def strip_srcref(html_text: str) -> str:
@@ -41,30 +33,33 @@ def strip_srcref(html_text: str) -> str:
 
 class EngineCase(unittest.TestCase):
   """Base case that gives each test a fresh temporary repository and a
-  cleared engine, then removes the repository afterwards."""
+  factory for a SourceDocs pointed at it, then removes the repository
+  afterwards."""
 
   def setUp(self) -> None:
     self.root = Path(tempfile.mkdtemp())
-    reset()
 
   def tearDown(self) -> None:
     shutil.rmtree(self.root, ignore_errors=True)
 
   def write(self, rel: str, text: str) -> Path:
-    """Create a file under the repo root from repo-relative posix path
+    """Create a file under the repo root from a repo-relative posix path
     and text, making parent directories as needed."""
     path = self.root / rel
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     return path
 
-  def configure(self, package: str = "demo") -> None:
-    """Point the engine at the repo with the standard src/tests layout
-    and a _source output directory under docs/."""
+  @property
+  def out(self) -> Path:
+    """The output directory a run writes its pages to."""
+    return self.root / "docs" / "_source"
+
+  def docs(self, package: str = "demo") -> SourceDocs:
+    """A SourceDocs over the repo with the standard src/tests layout."""
     src = self.root / "src"
-    g._configure(
-        self.root, src, src / package, self.root / "tests",
-        self.root / "docs" / "_source"
+    return SourceDocs(
+        self.root, src, src / package, self.root / "tests", self.out
     )
 
 

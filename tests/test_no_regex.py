@@ -1,7 +1,7 @@
 """The engine is built without the regular-expression module, by design
-and as the tool's signature. This check parses the engine and asserts no
-re import or re attribute access survives, using the syntax tree rather
-than a textual search."""
+and as the tool's signature. This check parses every module in the
+package and asserts no re import or re attribute access survives, using
+the syntax tree rather than a textual search."""
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
@@ -9,7 +9,7 @@ import ast
 import unittest
 from pathlib import Path
 
-import markwork._gen as g
+import markwork
 
 
 def _re_references(source: str) -> list:
@@ -31,11 +31,14 @@ def _re_references(source: str) -> list:
 
 
 class TestNoRegex(unittest.TestCase):
-  """The engine source contains no reference to the re module."""
+  """No module in the package references the re module."""
 
-  def test_engine_is_regex_free(self):
-    source = Path(g.__file__).read_text(encoding="utf-8")
-    self.assertEqual(_re_references(source), [])
+  def test_package_is_regex_free(self):
+    pkgdir = Path(markwork.__file__).parent
+    for pyfile in sorted(pkgdir.rglob("*.py")):
+      source = pyfile.read_text(encoding="utf-8")
+      refs = _re_references(source)
+      self.assertEqual(refs, [], "%s references re: %s" % (pyfile, refs))
 
   def test_detector_finds_each_shape(self):
     #  The detector itself must catch all three reference shapes, so it is

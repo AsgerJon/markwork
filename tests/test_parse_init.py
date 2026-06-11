@@ -2,7 +2,7 @@
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import markwork._gen as g
+from markwork.engine import parseInit
 from _support import EngineCase
 
 MIXED = (
@@ -21,19 +21,19 @@ class TestParseInit(EngineCase):
 
   def test_mixed(self):
     path = self.write("src/demo/__init__.py", MIXED)
-    all_names, source_map = g._parse_init(path)
-    self.assertEqual(all_names, ["sub", "Thing"])
-    self.assertEqual(source_map["sub"], ("child", "sub"))
-    self.assertEqual(source_map["T"], ("from", "mod", "Thing"))
-    self.assertNotIn("X", source_map)
+    allNames, sourceMap = parseInit(path)
+    self.assertEqual(allNames, ["sub", "Thing"])
+    self.assertEqual(sourceMap["sub"], ("child", "sub"))
+    self.assertEqual(sourceMap["T"], ("from", "mod", "Thing"))
+    self.assertNotIn("X", sourceMap)
 
   def test_tuple_all(self):
     path = self.write("src/demo/__init__.py", "__all__ = ('a', 'b')\n")
-    all_names, source_map = g._parse_init(path)
-    self.assertEqual(all_names, ["a", "b"])
-    self.assertEqual(source_map, {})
+    allNames, sourceMap = parseInit(path)
+    self.assertEqual(allNames, ["a", "b"])
+    self.assertEqual(sourceMap, {})
 
   def test_non_sequence_all_ignored(self):
     path = self.write("src/demo/__init__.py", "__all__ = make_all()\n")
-    all_names, source_map = g._parse_init(path)
-    self.assertEqual(all_names, [])
+    allNames, sourceMap = parseInit(path)
+    self.assertEqual(allNames, [])

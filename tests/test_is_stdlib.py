@@ -4,7 +4,7 @@
 
 import unittest
 
-import markwork._gen as g
+from markwork.engine import isStdlib
 
 
 class TestIsStdlib(unittest.TestCase):
@@ -12,13 +12,13 @@ class TestIsStdlib(unittest.TestCase):
   is a stdlib name; the empty string and third-party names do not."""
 
   def test_empty_module(self):
-    self.assertFalse(g._is_stdlib(""))
+    self.assertFalse(isStdlib(""))
 
   def test_stdlib(self):
-    self.assertTrue(g._is_stdlib("os"))
+    self.assertTrue(isStdlib("os"))
 
   def test_stdlib_submodule(self):
-    self.assertTrue(g._is_stdlib("collections.abc"))
+    self.assertTrue(isStdlib("collections.abc"))
 
   def test_third_party(self):
-    self.assertFalse(g._is_stdlib("pygments"))
+    self.assertFalse(isStdlib("pygments"))

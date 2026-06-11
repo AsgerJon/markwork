@@ -10,6 +10,7 @@ wired into a navigation tree. None of the autodoc machinery is loaded.
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
+import os
 from pathlib import Path
 
 project = "markwork"
@@ -45,4 +46,8 @@ extensions = ["markwork"]
 
 exclude_patterns = ["_build"]
 
-html_theme = "furo"
+#  markwork is theme-independent, so the dogfood theme is just a
+#  preference. It defaults to furo (in docs/requirements.txt) but honours
+#  MARKWORK_THEME, so the docs can be previewed under any installed theme
+#  without editing this file, for example MARKWORK_THEME=alabaster.
+html_theme = os.environ.get("MARKWORK_THEME", "furo")

@@ -27,17 +27,11 @@ jobs:
           pip install pytest pytest-cov
       - name: Run tests
         run: pytest tests
-      - name: Coverage (3.14 only)
+      - name: Coverage gate (3.14 only)
         if: ${{ matrix.python-version == '3.14' }}
         run: |
           pytest tests --cov=markwork --cov=tests --cov-branch \
-            --cov-report=xml
-      - name: Upload coverage to Codecov
-        if: ${{ matrix.python-version == '3.14' }}
-        uses: codecov/codecov-action@v6
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: AsgerJon/markwork
+            --cov-fail-under=100
 
   publish:
     needs: test

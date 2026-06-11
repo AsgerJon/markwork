@@ -6,7 +6,7 @@ import unittest
 
 from pygments.token import Token, Name
 
-import markwork._gen as g
+from markwork.engine import cssClass
 
 
 class TestCssClass(unittest.TestCase):
@@ -14,12 +14,12 @@ class TestCssClass(unittest.TestCase):
   leaf token type walks up to its nearest standard ancestor."""
 
   def test_root_token_empty(self):
-    self.assertEqual(g._css_class(Token), "")
+    self.assertEqual(cssClass(Token), "")
 
   def test_name_token(self):
-    self.assertEqual(g._css_class(Name), "n")
+    self.assertEqual(cssClass(Name), "n")
 
   def test_leaf_walks_up(self):
     #  A type absent from the standard table resolves to its nearest
     #  standard ancestor's class, exercising the walk-up loop body.
-    self.assertEqual(g._css_class(Name.FreshlyInvented), "n")
+    self.assertEqual(cssClass(Name.FreshlyInvented), "n")

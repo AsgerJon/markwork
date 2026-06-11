@@ -21,11 +21,12 @@ directory.
 
 from pathlib import Path
 
-from ._gen import generate
+from . import engine
+from .engine import generate
 
 __version__ = "0.1.0"
 
-__all__ = ["setup", "generate"]
+__all__ = ["setup", "generate", "engine"]
 
 
 def setup(app: object) -> dict:
@@ -37,7 +38,7 @@ def setup(app: object) -> dict:
   app.add_config_value("markwork_src_root", "src", "env")
   app.add_config_value("markwork_tests_root", "tests", "env")
   app.connect("builder-inited", generate)
-  static = str(Path(__file__).parent / "_static")
+  static = str(Path(__file__).parent / "etc")
   app.config.html_static_path.append(static)
   app.add_css_file("markwork.css")
   return {

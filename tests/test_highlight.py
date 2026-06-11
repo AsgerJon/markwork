@@ -9,7 +9,8 @@ from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
 
-import markwork._gen as g
+from markwork import engine
+from markwork.engine import highlightWithLinks
 from _support import EngineCase, strip_srcref
 
 
@@ -20,7 +21,7 @@ def _stock(source: str) -> str:
   return highlight(source, PythonLexer(), formatter)
 
 
-ENGINE = Path(g.__file__).read_text(encoding="utf-8")
+ENGINE = Path(engine.__file__).read_text(encoding="utf-8")
 
 NO_NEWLINE = "import os\n\n\nx = os.getcwd()"
 
@@ -31,23 +32,23 @@ class TestHighlight(EngineCase):
   anchors are stripped."""
 
   def test_byte_identical_trailing_newline(self):
-    self.assertEqual(g._highlight_with_links(ENGINE, {}), _stock(ENGINE))
+    self.assertEqual(highlightWithLinks(ENGINE, {}), _stock(ENGINE))
 
   def test_byte_identical_no_trailing_newline(self):
     self.assertEqual(
-        g._highlight_with_links(NO_NEWLINE, {}), _stock(NO_NEWLINE)
+        highlightWithLinks(NO_NEWLINE, {}), _stock(NO_NEWLINE)
     )
 
   def test_strip_anchors_restores_equivalence(self):
-    self.configure()
+    docs = self.docs()
     pyfile = self.write(
         "src/demo/mod.py",
         "import os\n\n\ndef run():\n  return os.getcwd() + str(len([]))\n",
     )
-    g._record_file_page(pyfile, "demo.mod")
-    link_map = g._definition_links(pyfile)
-    self.assertTrue(link_map)
+    docs.recordFilePage(pyfile, "demo.mod")
+    linkMap = docs.definitionLinks(pyfile)
+    self.assertTrue(linkMap)
     source = pyfile.read_text(encoding="utf-8")
-    linked = g._highlight_with_links(source, link_map)
+    linked = highlightWithLinks(source, linkMap)
     self.assertIn('class="srcref', linked)
     self.assertEqual(strip_srcref(linked), _stock(source))

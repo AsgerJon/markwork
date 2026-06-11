@@ -43,7 +43,7 @@ Issues = "https://github.com/AsgerJon/markwork/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-markwork = ["_static/*.css"]
+markwork = ["etc/*.css"]
 
 [tool.coverage.run]
 branch = true
