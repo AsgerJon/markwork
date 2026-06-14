@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "markwork"
-version = "0.1.1-rc0"
+version = "0.1.1"
 description = "Sphinx docs without autodoc: your source, made click-through."
 readme = "README.md"
 requires-python = ">=3.10"
