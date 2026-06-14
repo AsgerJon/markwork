@@ -1,0 +1,22 @@
+# Read the Docs build configuration.
+#
+# RTD reads this from the repo root, builds docs/conf.py with the
+# given Python, and hosts the result with per-tag versioning.
+#
+# The build does NOT install worktoy: the docs only read the source
+# files as text and render them to HTML with Pygments, so the
+# toolchain is just Sphinx + the theme.
+
+version: 2
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.12"
+
+sphinx:
+  configuration: docs/conf.py
+
+python:
+  install:
+    - requirements: docs/requirements.txt
