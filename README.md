@@ -11,8 +11,6 @@ not Sphinx.
 
 Stop documenting your code. Start publishing it.
 
-The name is `markwork`, from the Danish `makværk`, with a wink at markup.
-
 # Table of Contents
 
 - [Installation](#installation)
