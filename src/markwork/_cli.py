@@ -168,9 +168,9 @@ def build(
 ) -> Path:
   """Generate the markwork HTML for a repository and return the output dir.
 
-  The source root, tests root and package are resolved by 'detectLayout'
-  from what the project declares and from convention, with any of them
-  overridable. A temporary directory holds the generated conf.py and
+  The source root and package are resolved by 'detectLayout' from what the
+  project declares and from convention, and the tests are taken from
+  'tests/'; each can be named instead. A temporary directory holds the generated conf.py and
   index.rst and serves as the Sphinx source directory; the engine reads the
   project's source in place via 'markwork_repo_root' and the HTML is built
   into the output directory. The temporary directory is removed afterwards,
@@ -183,7 +183,7 @@ def build(
   srcRoot : str, optional
       The source root relative to the repo; auto-detected when omitted.
   testsRoot : str, optional
-      The tests root relative to the repo; auto-detected when omitted.
+      The tests root relative to the repo; 'tests' when omitted.
   package : str, optional
       The package name; auto-detected when omitted.
   output : str or Path, optional
@@ -269,7 +269,7 @@ def main(argv=None) -> int:
   )
   parser.add_argument(
       "--tests", default=None,
-      help="tests root relative to the repo (default: auto-detect)",
+      help="tests root relative to the repo (default: tests)",
   )
   parser.add_argument(
       "--package", default=None,

@@ -58,15 +58,11 @@ markwork auto-detects the layout from what your project already declares.
 The source root and package come from your build configuration (setuptools
 `packages.find.where` / `package-dir` in `pyproject.toml`, with the
 distribution name picking the package when several qualify), falling back
-to `src/` (or the repo root) and the lone package it finds. The tests root
-comes from pytest's `testpaths` (in `pyproject.toml`, `setup.cfg`,
-`tox.ini` or `pytest.ini`), falling back to `tests/` then `test/` and, as
-a last resort, to a static scan that follows class inheritance across
-files to find `unittest.TestCase` subclasses anywhere in the repo, even
-through a project base class or an aliased import, all without importing
-your code. Virtual environments are skipped whatever they are called. It
-prints what it resolved, and an ambiguous package stops the build with a
-clear message rather than guessing. Override any of it with `--src`,
+to `src/` (or the repo root) and the lone package it finds. The tests are
+expected in `tests/`. markwork does not go looking for them, so a project
+that keeps them elsewhere says where with `--tests`. It prints what it
+resolved, and an ambiguous package stops the build with a clear message
+rather than guessing. Override any of it with `--src`,
 `--tests`, `--package` or `--theme` (`markwork --help` lists them; the
 theme is furo when installed, alabaster otherwise). Sphinx writes the
 pages with one worker per CPU; `-j 1` builds serially. The same build

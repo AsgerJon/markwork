@@ -10,8 +10,9 @@ rolled into the release they lead up to.
 
 - The `markwork` command (also `python -m markwork`): point it at a
   repository and it builds the click-through docs from a throwaway
-  configuration, detecting the source root, package and tests root from
-  what the project declares, and leaving the repository untouched.
+  configuration, detecting the source root and package from what the
+  project declares, taking the tests from `tests/` (or the folder
+  `--tests` names), and leaving the repository untouched.
 - A package without a readable `__all__` is documented from its
   conventionally public names (what its `__init__.py` defines or imports,
   then its submodules and subpackages, none with a leading underscore)
