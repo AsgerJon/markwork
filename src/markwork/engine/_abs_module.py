@@ -13,7 +13,8 @@ def absModule(srcRoot: Path, pyfile: Path, level: int, module) -> str:
 
   Relative imports (level >= 1) are resolved against the file's package. A
   relative import in a file outside the source root (for example a test)
-  cannot name a project symbol, so it resolves to the empty string.
+  cannot name a project symbol, and one that climbs above the top-level
+  package fails at runtime, so both resolve to the empty string.
 
   Parameters
   ----------
@@ -38,7 +39,10 @@ def absModule(srcRoot: Path, pyfile: Path, level: int, module) -> str:
     pkgParts = pyfile.parent.relative_to(srcRoot).parts
   except ValueError:
     return ""
-  base = list(pkgParts[:len(pkgParts) - (level - 1)])
+  keep = len(pkgParts) - (level - 1)
+  if keep < 1:
+    return ""
+  base = list(pkgParts[:keep])
   if module:
     base += module.split(".")
   return ".".join(base)

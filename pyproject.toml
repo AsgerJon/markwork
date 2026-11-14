@@ -18,6 +18,7 @@ keywords = ["sphinx", "documentation", "autodoc", "pygments", "source"]
 dependencies = [
   "sphinx>=7",
   "pygments",
+  "furo",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -39,11 +40,19 @@ Homepage = "https://github.com/AsgerJon/markwork"
 Repository = "https://github.com/AsgerJon/markwork"
 Issues = "https://github.com/AsgerJon/markwork/issues"
 
+[project.scripts]
+markwork = "markwork._cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 markwork = ["etc/*.css"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+#  The suite runs from a checkout without installing the package first.
+pythonpath = ["src"]
 
 [tool.coverage.run]
 branch = true

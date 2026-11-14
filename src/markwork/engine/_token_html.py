@@ -36,9 +36,9 @@ def tokenHtml(css: str, value: str, href: str) -> str:
       The Pygments CSS class, or the empty string for no span.
   value : str
       The token's literal text.
-  href : str
-      The link target, or the empty string for no anchor. A target
-      starting with 'http' is treated as external.
+  href : str or None
+      The link target, or None or the empty string for no anchor. A
+      target starting with 'http' is treated as external.
 
   Returns
   -------

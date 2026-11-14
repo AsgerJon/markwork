@@ -52,3 +52,19 @@ class TestHighlight(EngineCase):
     linked = highlightWithLinks(source, linkMap)
     self.assertIn('class="srcref', linked)
     self.assertEqual(strip_srcref(linked), _stock(source))
+
+  def test_non_ascii_links_wrap_their_names(self):
+    #  Links on a line holding wide characters still wrap exactly their
+    #  names, and stripping them restores stock Pygments.
+    docs = self.docs()
+    pyfile = self.write(
+        "src/demo/wide.py", "x = ['æøå', len([])]  # ü\ny = 'ß' + str(x)\n"
+    )
+    docs.recordFilePage(pyfile, "demo.wide")
+    source = pyfile.read_text(encoding="utf-8")
+    linked = highlightWithLinks(source, docs.definitionLinks(pyfile))
+    self.assertIn('href="https://docs.python.org/3/library/functions.html#len"'
+                  '><span class="nb">len</span></a>', linked)
+    self.assertIn('><span class="n">x</span></a>', linked)
+    self.assertEqual(strip_srcref(linked), _stock(source))
+

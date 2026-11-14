@@ -16,22 +16,28 @@ it documents itself.
 
 #  Constants
 from ._pydocs import PYDOCS
+#  Reading source
+from ._read_source import readSource
+from ._parse_source import parseSource
 #  Pure rendering helpers
+from ._rst_text import rstText
 from ._title import title
 from ._line_starts import lineStarts
+from ._char_offset import charOffset
 from ._css_class import cssClass
 from ._token_html import tokenHtml
 from ._merge_tokens import mergeTokens
+from ._lex_tokens import lexTokens
 from ._highlight import highlightWithLinks
 #  Pure AST helpers
-from ._top_level_defs import topLevelDefs
-from ._top_level_def_lines import topLevelDefLines
-from ._parse_init import parseInit
+from ._module_statements import moduleStatements
 from ._module_definitions import moduleDefinitions
-from ._nested_bound import nestedBound
-from ._bound_anywhere import boundAnywhere
-from ._add_alias_site import addAliasSite
+from ._parse_init import parseInit
+from ._attribute_chain import attributeChain
 from ._abs_module import absModule
+#  Scope resolution
+from ._scope import Scope
+from ._resolve_scopes import resolveScopes
 #  Standard-library and builtin link helpers
 from ._is_stdlib import isStdlib
 from ._builtin_links import buildBuiltinLinks, BUILTIN_LINKS
@@ -39,27 +45,33 @@ from ._builtin_links import buildBuiltinLinks, BUILTIN_LINKS
 from ._detect_package import detectPackage
 from ._source_docs import SourceDocs
 from ._generate import generate
+from ._collapse_navigation import collapseNavigation
 
 __all__ = [
   "PYDOCS",
+  "readSource",
+  "parseSource",
+  "rstText",
   "title",
   "lineStarts",
+  "charOffset",
   "cssClass",
   "tokenHtml",
   "mergeTokens",
+  "lexTokens",
   "highlightWithLinks",
-  "topLevelDefs",
-  "topLevelDefLines",
-  "parseInit",
+  "moduleStatements",
   "moduleDefinitions",
-  "nestedBound",
-  "boundAnywhere",
-  "addAliasSite",
+  "parseInit",
+  "attributeChain",
   "absModule",
+  "Scope",
+  "resolveScopes",
   "isStdlib",
   "buildBuiltinLinks",
   "BUILTIN_LINKS",
   "detectPackage",
   "SourceDocs",
   "generate",
+  "collapseNavigation",
 ]

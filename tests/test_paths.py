@@ -13,6 +13,8 @@ class TestPaths(EngineCase):
 
   def test_title(self):
     self.assertEqual(title("abc"), "abc\n===")
+    #  A name ending in '_' would be an rST reference: it is escaped.
+    self.assertEqual(title("x_ *y*", "-"), "x\\_ \\*y\\*\n" + "-" * 9)
 
   def test_rel_path(self):
     path = self.write("src/demo/thing.py", "x = 1\n")

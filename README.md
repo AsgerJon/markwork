@@ -14,6 +14,7 @@ Stop documenting your code. Start publishing it.
 # Table of Contents
 
 - [Installation](#installation)
+- [Point It at a Repo](#point-it-at-a-repo)
 - [You Already Wrote the Docs](#you-already-wrote-the-docs)
 - [Click a Name, Land on the Definition](#click-a-name-land-on-the-definition)
 - [Every Page Ends With Its Tests](#every-page-ends-with-its-tests)
@@ -30,8 +31,50 @@ Install with pip:
 pip install markwork
 ```
 
-This pulls in Sphinx and Pygments. markwork rides on Sphinx for the HTML
-shell, search, theme, and hosting. What it replaces is autodoc.
+This pulls in Sphinx, Pygments and the furo theme. markwork rides on
+Sphinx for the HTML shell, search, theme, and hosting. What it replaces is
+autodoc.
+
+# Point It at a Repo
+
+Want to see it before wiring anything up? Point markwork at a repository
+and it renders the whole thing, with no `conf.py`, no `index.rst` and
+nothing scaffolded into the project:
+
+```bash
+markwork path/to/repo --open
+```
+
+That generates a throwaway Sphinx config in a temporary directory, reads
+the project's source in place, builds the click-through HTML, and opens it
+in your browser. The repository is left untouched; only the rendered HTML
+is written, to a temporary directory by default or wherever `-o` points:
+
+```bash
+markwork . -o public/        # build the current repo into ./public
+```
+
+markwork auto-detects the layout from what your project already declares.
+The source root and package come from your build configuration (setuptools
+`packages.find.where` / `package-dir` in `pyproject.toml`, with the
+distribution name picking the package when several qualify), falling back
+to `src/` (or the repo root) and the lone package it finds. The tests root
+comes from pytest's `testpaths` (in `pyproject.toml`, `setup.cfg`,
+`tox.ini` or `pytest.ini`), falling back to `tests/` then `test/` and, as
+a last resort, to a static scan that follows class inheritance across
+files to find `unittest.TestCase` subclasses anywhere in the repo, even
+through a project base class or an aliased import, all without importing
+your code. Virtual environments are skipped whatever they are called. It
+prints what it resolved, and an ambiguous package stops the build with a
+clear message rather than guessing. Override any of it with `--src`,
+`--tests`, `--package` or `--theme` (`markwork --help` lists them; the
+theme is furo when installed, alabaster otherwise). Sphinx writes the
+pages with one worker per CPU; `-j 1` builds serially. The same build
+runs as `python -m markwork`.
+
+This zero-config command is for previews and one-off renders. To **host**
+the docs (for example on Read the Docs), commit a `docs/conf.py` with the
+one-line extension instead; see [Quickstart](#quickstart).
 
 # You Already Wrote the Docs
 
@@ -97,7 +140,7 @@ Now you are. Add one line to `conf.py`:
 extensions = ["markwork"]
 ```
 
-markwork publishes the function — docstring, signature, body, all of it —
+markwork publishes the function (docstring, signature, body, all of it)
 exactly as you wrote it. The page is the source. You already finished the
 documentation; you just did not know it yet.
 
@@ -105,7 +148,7 @@ documentation; you just did not know it yet.
 
 markwork reads your syntax tree, so every name on the page is wired to
 where it comes from. You do not read the docs by scrolling. You read them
-the way you read code — by following definitions:
+the way you read code, by following definitions:
 
 ```
 widget.py     click Point  →  geometry.py:14   (the def, highlighted)
@@ -114,15 +157,18 @@ sequences.py  click fib    →  sequences.py:30  (back to its own def)
 ```
 
 Project symbols and same-file names jump inside your docs, at the exact
-line. Standard-library members and builtins jump to the official Python
-documentation. A name shadowed by a local binding stays unlinked, so a
-link never sends you somewhere wrong.
+line, and so does the `Thing` in `pkg.mod.Thing`. Standard-library members
+and builtins jump to the official Python documentation. Names are resolved
+by Python's own scoping rules: a parameter, a method or an `except ... as`
+name shadows only the scope it lives in. Anything markwork cannot pin down
+for certain, such as a name a star import may have replaced or one bound
+two ways, stays unlinked, so a link never sends you somewhere wrong.
 
 # Every Page Ends With Its Tests
 
 Scroll to the bottom of any symbol's page and the tests that exercise it
-are waiting there — listed for you, no digging, file and line, each line a
-link straight to the assertion:
+are waiting there. They are listed for you by file and line, with no
+digging, and each line is a link straight to the assertion:
 
 ```
 fib()
@@ -152,7 +198,9 @@ acme/
 markwork follows your **public API**: every name in the package's `__all__`
 becomes a page, a re-exported symbol pulls in its defining file, and the
 `tests/` tree is mirrored for you. So the package's `__init__.py` is your
-table of contents:
+table of contents. A re-export is followed however far it goes, through
+subpackages, aliases and star imports, to the file that really defines
+it:
 
 ```python
 # src/acme/__init__.py
@@ -161,8 +209,14 @@ from .widget import Widget
 __all__ = ["Widget"]
 ```
 
-`docs/index.rst` needs a single include — markwork writes the tree into
-`_source/`:
+No `__all__`? Then the public names are the ones without a leading
+underscore: whatever `__init__.py` defines or imports, then its
+submodules and subpackages. A name in `__all__` that leads nowhere is a
+build warning, never a silently missing page; silence those with
+`suppress_warnings = ["markwork"]` if you must.
+
+`docs/index.rst` needs a single include, since markwork writes the tree
+into `_source/`:
 
 ```rst
 acme
@@ -174,7 +228,7 @@ acme
 Build it:
 
 ```bash
-pip install markwork furo
+pip install markwork
 sphinx-build -b html docs docs/_build/html
 ```
 
@@ -189,6 +243,19 @@ Override when needed:
 markwork_package = "acme"      # auto-detected when src/ holds one package
 markwork_src_root = "src"      # source root, relative to the project
 markwork_tests_root = "tests"  # test root, relative to the project
+```
+
+Each page's sidebar holds the top level and the branch the page is on,
+not the whole site: with a page per source file, a full tree on every
+page grows the site with the square of its size (it was two thirds of
+worktoy's 61 MB). Set `markwork_collapse_navigation = False` to keep your
+theme's own choice. Since each page's rST is a generated wrapper around a
+source file, these two lines are worth adding too; the `markwork` command
+sets them for you:
+
+```python
+html_copy_source = False
+html_show_sourcelink = False
 ```
 
 Flat layout, with the package at the project root instead of under `src/`?

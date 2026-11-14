@@ -46,6 +46,11 @@ extensions = ["markwork"]
 
 exclude_patterns = ["_build"]
 
+#  Each page's rST is a generated wrapper around a source file, so copying
+#  it for the theme's "view source" link only adds weight.
+html_copy_source = False
+html_show_sourcelink = False
+
 #  markwork is theme-independent, so the dogfood theme is just a
 #  preference. It defaults to furo (in docs/requirements.txt) but honours
 #  MARKWORK_THEME, so the docs can be previewed under any installed theme

@@ -67,3 +67,29 @@ class TestRun(EngineCase):
     self.docs().run()
     packages = (self.out / "_packages.txt").read_text(encoding="utf-8")
     self.assertNotIn("_source/tests", packages)
+
+  def test_generate_reports_warnings_and_reads_repo_root_from_confdir(self):
+    #  The docs live outside the project; markwork_repo_root is given
+    #  relative to the conf.py directory, as Sphinx paths are.
+    self.build()
+    confdir = self.root / "site" / "conf"
+    confdir.mkdir(parents=True)
+    app = FakeApp(
+        confdir, confdir, FakeConfig(package="demo", repo_root="../..")
+    )
+    with self.assertLogs("sphinx.markwork.engine._generate", "WARNING") as logs:
+      generate(app)
+    #  'notpkg' is in __all__ but is a plain directory: reported, not lost.
+    self.assertIn("'notpkg'", logs.output[0])
+    self.assertTrue((confdir / "_source" / "demo.core.Thing.rst").exists())
+
+  def test_module_named_rst_keeps_its_toctree_entry(self):
+    #  Sphinx strips one '.rst' from a toctree entry, so a stub that ends
+    #  in '.rst' must be written with the suffix to survive.
+    self.write("src/demo/__init__.py", "from . import rst\n__all__ = ['rst']\n")
+    self.write("src/demo/rst.py", "x = 1\n")
+    self.docs().run()
+    body = (self.out / "demo.rst").read_text(encoding="utf-8")
+    self.assertIn("   demo.rst.rst\n", body)
+    self.assertTrue((self.out / "demo.rst.rst").exists())
+

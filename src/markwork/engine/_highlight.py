@@ -7,17 +7,13 @@ go-to-definition anchors injected.
 
 import bisect
 
-from pygments.lexers import PythonLexer
-
 from ._css_class import cssClass
+from ._lex_tokens import lexTokens
 from ._line_starts import lineStarts
-from ._merge_tokens import mergeTokens
 from ._token_html import tokenHtml
 
-_LEXER = PythonLexer()
 
-
-def highlightWithLinks(source: str, linkMap: dict) -> str:
+def highlightWithLinks(source: str, linkMap: dict, tokens=None) -> str:
   """Render source to the highlighted HTML the Pygments HtmlFormatter
   produces, wrapping linked tokens in go-to-definition anchors.
 
@@ -36,6 +32,8 @@ def highlightWithLinks(source: str, linkMap: dict) -> str:
       The source text.
   linkMap : dict
       A mapping of absolute source offset to link target.
+  tokens : list of tuple, optional
+      The source's tokens, as from 'lexTokens'; lexed here when omitted.
 
   Returns
   -------
@@ -45,9 +43,9 @@ def highlightWithLinks(source: str, linkMap: dict) -> str:
   starts = lineStarts(source)
   count = len(starts) - 1 if source.endswith("\n") else len(starts)
   buffers = [""] * (count + 1)
-  for offset, ttype, value in mergeTokens(
-      _LEXER.get_tokens_unprocessed(source)
-      ):
+  if tokens is None:
+    tokens = lexTokens(source)
+  for offset, ttype, value in tokens:
     css = cssClass(ttype)
     if "\n" in value:
       first = bisect.bisect_right(starts, offset)

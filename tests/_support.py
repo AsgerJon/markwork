@@ -68,12 +68,13 @@ class FakeConfig:
   engine and the extension setup read or mutate."""
 
   def __init__(
-      self, package=None, src_root="src", tests_root="tests"
+      self, package=None, src_root="src", tests_root="tests", repo_root=None
   ) -> None:
     self.html_static_path = []
     self.markwork_package = package
     self.markwork_src_root = src_root
     self.markwork_tests_root = tests_root
+    self.markwork_repo_root = repo_root
 
 
 class FakeApp:
@@ -91,7 +92,7 @@ class FakeApp:
   def add_config_value(self, name, default, rebuild) -> None:
     self.config_values[name] = default
 
-  def connect(self, event, handler) -> None:
+  def connect(self, event, handler, priority=500) -> None:
     self.connected.append((event, handler))
 
   def add_css_file(self, name) -> None:

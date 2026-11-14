@@ -9,7 +9,8 @@ from _support import EngineCase
 class TestAbsModule(EngineCase):
   """Absolute imports return their module verbatim; relative imports are
   resolved against the file's package, and a relative import outside the
-  source root resolves to the empty string."""
+  source root, or above the top-level package, resolves to the empty
+  string."""
 
   def setUp(self):
     super().setUp()
@@ -35,6 +36,10 @@ class TestAbsModule(EngineCase):
 
   def test_relative_parent_package(self):
     self.assertEqual(absModule(self.src, self.srcFile, 2, None), "demo")
+
+  def test_relative_above_top_package(self):
+    #  'from .... import x' climbs past 'demo', which fails at runtime.
+    self.assertEqual(absModule(self.src, self.srcFile, 4, None), "")
 
   def test_relative_outside_source(self):
     self.assertEqual(absModule(self.src, self.testFile, 1, None), "")

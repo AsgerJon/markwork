@@ -8,7 +8,6 @@ set -eu
 
 export DEVELOPMENT_ENVIRONMENT=1
 export PYTHONDONTWRITEBYTECODE=1
-export MARKWORK_ETC_DIR="$(pwd)/etc"
 
 runTests() {
   reportDir="htmlcov"
