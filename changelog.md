@@ -4,7 +4,7 @@ This changelog covers stable releases. Development ('-dev') and release
 candidate ('-rc') builds are not logged on their own; their changes are
 rolled into the release they lead up to.
 
-## [Unreleased]
+## [0.1.2] - 2026-11-15
 
 ### Added
 
