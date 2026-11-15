@@ -24,7 +24,7 @@ from pathlib import Path
 from . import engine
 from .engine import collapseNavigation, generate
 
-__version__ = "0.1.2-dev0"
+__version__ = "0.1.2-rc0"
 
 __all__ = ["setup", "generate", "engine"]
 
