@@ -62,9 +62,16 @@ rolled into the release they lead up to.
   generated rST: worktoy is 26 MB and builds in a third of the time.
 - A file shown on several pages is lexed and scope-resolved once, roughly
   a third off the build time of a large project.
+- Pygments 2.21 stopped escaping the quotes in the text of a token, so
+  the rendered source was no longer byte-identical to stock Pygments.
+  The quotes are now written the way the installed Pygments writes them,
+  whichever version that is; `&`, `<` and `>` are always escaped.
 
 ### Changed
 
+- Python 3.12 is the oldest supported version and 3.15 the newest: 3.10
+  and 3.11 are dropped. markwork runs in the docs build of a project,
+  not in the project, so it follows the current versions of Python.
 - Names are resolved by Python's own scoping rules. A parameter, method,
   local or `except` name shadows only its own scope; before, any binding
   anywhere in a file unlinked that name everywhere in it. A module that

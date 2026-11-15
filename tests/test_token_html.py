@@ -4,6 +4,10 @@
 
 import unittest
 
+import pygments
+from pygments.formatters import HtmlFormatter
+from pygments.token import Token
+
 from markwork.engine import tokenHtml
 
 
@@ -33,8 +37,19 @@ class TestTokenHtml(unittest.TestCase):
     self.assertIn('target="_blank"', out)
     self.assertIn('rel="noopener"', out)
 
-  def test_escape_table_matches_pygments(self):
-    #  Five markup characters escape, the apostrophe as decimal '&#39;'.
+  def test_markup_characters_always_escape(self):
+    #  These three begin or end markup, so they escape whatever the
+    #  installed Pygments does.
+    self.assertEqual(tokenHtml("", "<&>", ""), "&lt;&amp;&gt;")
     self.assertEqual(
-        tokenHtml("", "<&>\"'", ""), "&lt;&amp;&gt;&quot;&#39;"
+        tokenHtml("s2", "</span><b>", ""),
+        '<span class="s2">&lt;/span&gt;&lt;b&gt;</span>',
     )
+
+  def test_escapes_as_the_installed_pygments(self):
+    #  Pygments wrote the quotes in a token's text as entities up to 2.20
+    #  and leaves them alone from 2.21 on. A token follows the installed
+    #  one, character for character.
+    text = "<&>\"' \"\"\"doc\"\"\" it's"
+    stock = pygments.format([(Token, text)], HtmlFormatter(nowrap=True))
+    self.assertEqual(tokenHtml("", text, "") + "\n", stock)

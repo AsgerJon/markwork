@@ -40,12 +40,15 @@ pip install -e .
 
 ## Version Support
 
-*markwork* supports Python 3.10 and up. The floor is 3.10 because the full
-feature set needs `sys.stdlib_module_names` and the position attributes on
-`ast.alias`, both added in 3.10. Every feature works there and nothing in
-*markwork* needs anything newer, so there is no backport machinery to
-maintain: no `from __future__ import annotations`, no `TYPE_CHECKING`
-dance, and the walrus operator and other modern syntax are fair game.
+*markwork* supports Python 3.12 through 3.15. It runs in the docs build of
+a project and is no dependency of the project itself, so it has no old
+installations to keep working and follows the current versions of Python.
+The floor is 3.12 because *markwork* reads source with the parser of the
+Python it runs on, and only from 3.12 on does that parser read the `type`
+statement and the type parameters of PEP 695. Every feature works on
+every supported version, so there is no backport machinery to maintain:
+no `from __future__ import annotations`, no `TYPE_CHECKING` dance, and
+modern syntax is fair game.
 
 ## Testing and Coverage
 

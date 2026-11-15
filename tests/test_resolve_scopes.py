@@ -5,7 +5,6 @@ builtin."""
 #  Copyright (c) 2026 Asger Jon Vistisen
 
 import ast
-import sys
 import unittest
 
 from markwork.engine import Scope, resolveScopes
@@ -165,7 +164,6 @@ class TestResolveScopes(unittest.TestCase):
     self.assertEqual(found[(6, "z")], "function")
     self.assertEqual(found[(6, "os")], "module")
 
-  @unittest.skipUnless(sys.version_info >= (3, 12), "PEP 695 syntax")
   def test_type_parameters(self):
     _, found = resolve(
         "T = 1\n"

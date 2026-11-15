@@ -262,7 +262,7 @@ markwork_src_root = "."
 markwork_package = "acme"
 ```
 
-Requires Python 3.10 or newer.
+Requires Python 3.12 or newer.
 
 # Themes
 

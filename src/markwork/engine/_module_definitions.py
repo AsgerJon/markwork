@@ -11,10 +11,6 @@ from ._module_statements import moduleStatements
 
 _DEFS = (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
 
-#  The 'type X = ...' statement (PEP 695) exists from Python 3.12; on an
-#  older interpreter the empty tuple matches nothing.
-_TYPE_ALIAS = getattr(ast, "TypeAlias", ())
-
 
 def moduleDefinitions(tree: ast.AST) -> dict:
   """Return each module-scope name mapped to the line it is defined on.
@@ -53,6 +49,6 @@ def moduleDefinitions(tree: ast.AST) -> dict:
     elif isinstance(node, ast.AnnAssign):
       if isinstance(node.target, ast.Name) and node.value is not None:
         defs.setdefault(node.target.id, node.lineno)
-    elif isinstance(node, _TYPE_ALIAS):
+    elif isinstance(node, ast.TypeAlias):
       defs.setdefault(node.name.id, node.lineno)
   return defs

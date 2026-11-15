@@ -5,13 +5,6 @@ package failing loudly."""
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
-import importlib
-import sys
-import types
-import unittest
-from unittest import mock
-
-from markwork import _layout
 from markwork._layout import (
     detectLayout, detectSrcRoot, detectPackageName, readPyproject,
 )
@@ -23,7 +16,6 @@ class TestLayout(EngineCase):
   to convention; explicit overrides win and ambiguity raises."""
 
   #  Source root
-  @unittest.skipIf(_layout.tomllib is None, "no TOML parser (3.10, no tomli)")
   def test_src_root_from_setuptools_where(self):
     self.write(
         "pyproject.toml",
@@ -33,7 +25,6 @@ class TestLayout(EngineCase):
     data = readPyproject(self.root)
     self.assertEqual(detectSrcRoot(self.root, data), "lib")
 
-  @unittest.skipIf(_layout.tomllib is None, "no TOML parser (3.10, no tomli)")
   def test_src_root_from_package_dir(self):
     self.write(
         "pyproject.toml",
@@ -93,7 +84,6 @@ class TestLayout(EngineCase):
     )
     self.assertEqual((src, tests, pkg), ("anywhere", "qa", "mypkg"))
 
-  @unittest.skipIf(_layout.tomllib is None, "no TOML parser (3.10, no tomli)")
   def test_detect_layout_all_detected(self):
     self.write(
         "pyproject.toml",
@@ -114,33 +104,15 @@ class TestLayout(EngineCase):
 
 
 class TestLayoutEdges(EngineCase):
-  """The degraded paths: no or broken pyproject.toml, a missing TOML
-  parser, setuptools settings of other shapes, and a flat layout with a
-  tests package."""
+  """The degraded paths: no or broken pyproject.toml, setuptools settings
+  of other shapes, and a flat layout with a tests package."""
 
   def test_read_pyproject_degrades(self):
     self.assertEqual(readPyproject(self.root), {})
     self.write("pyproject.toml", "this is = = not toml\n")
     self.assertEqual(readPyproject(self.root), {})
     self.write("pyproject.toml", "[project]\nname = 'x'\n")
-    with mock.patch("markwork._layout.tomllib", None):
-      self.assertEqual(readPyproject(self.root), {})
-
-  def test_toml_parser_fallbacks(self):
-    #  Simulate Python 3.10, with tomli and then without it, and restore.
-    from markwork import _layout
-    original = _layout.tomllib
-    stand_in = types.ModuleType("tomli")
-    try:
-      with mock.patch.dict(sys.modules, {"tomllib": None, "tomli": stand_in}):
-        importlib.reload(_layout)
-        self.assertIs(_layout.tomllib, stand_in)
-      with mock.patch.dict(sys.modules, {"tomllib": None, "tomli": None}):
-        importlib.reload(_layout)
-        self.assertIsNone(_layout.tomllib)
-    finally:
-      importlib.reload(_layout)
-    self.assertIs(_layout.tomllib, original)
+    self.assertEqual(readPyproject(self.root), {"project": {"name": "x"}})
 
   def test_src_root_ignores_other_shapes(self):
     data = {"tool": {"setuptools": {

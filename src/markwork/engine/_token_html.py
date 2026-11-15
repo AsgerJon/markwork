@@ -7,17 +7,32 @@ wrapped in a go-to-definition anchor.
 
 import html
 
-#  The exact character-to-entity table the Pygments HtmlFormatter uses for
-#  text content, so a token's escaped text is byte-identical to stock
-#  Pygments. It escapes the five markup-significant characters, rendering
-#  the apostrophe as the decimal '&#39;' rather than Python html.escape's
-#  hexadecimal '&#x27;'.
+import pygments
+from pygments.formatters import HtmlFormatter
+from pygments.token import Token
+
+
+def _stockText(text: str) -> str:
+  """Return 'text' as the installed Pygments HtmlFormatter writes it when
+  it is the text of a token, without the line end the formatter adds."""
+  formatter = HtmlFormatter(nowrap=True)
+  return pygments.format([(Token, text)], formatter).removesuffix("\n")
+
+
+#  The character-to-entity table for the text of a token. The three
+#  characters that begin or end markup are always escaped, so the safety
+#  of a page never rests on Pygments. The two quotes need no escaping in
+#  text content, and Pygments changed its mind about them: up to 2.20 it
+#  wrote them as '&quot;' and '&#39;', from 2.21 on it leaves them as they
+#  are. They are written here the way the installed Pygments writes them,
+#  so a token's escaped text is byte-identical to stock Pygments either
+#  way.
 _ESCAPE = {
   ord("&"): "&amp;",
   ord("<"): "&lt;",
   ord(">"): "&gt;",
-  ord('"'): "&quot;",
-  ord("'"): "&#39;",
+  ord('"'): _stockText('"'),
+  ord("'"): _stockText("'"),
 }
 
 

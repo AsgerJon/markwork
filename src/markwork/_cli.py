@@ -33,9 +33,7 @@ def projectMeta(repoRoot) -> tuple:
 
   Falls back to the repository directory name and an empty version when
   there is no pyproject.toml or it names neither, so the build always has a
-  heading to render. When no TOML parser is available (Python 3.10
-  without tomli), a small scan of the [project] table stands in, in the
-  same dependency-free spirit as the dogfood conf.py.
+  heading to render.
 
   Parameters
   ----------
@@ -50,39 +48,7 @@ def projectMeta(repoRoot) -> tuple:
   repoRoot = Path(repoRoot)
   project = readPyproject(repoRoot).get("project", {})
   name, version = project.get("name"), project.get("version")
-  if name or version:
-    return name or repoRoot.name, version or ""
-  pyproject = repoRoot / "pyproject.toml"
-  name, version = repoRoot.name, ""
-  if not pyproject.is_file():
-    return name, version
-  inProject = False
-  for line in pyproject.read_text(encoding="utf-8").splitlines():
-    stripped = line.strip()
-    if stripped.startswith("[") and stripped.endswith("]"):
-      inProject = stripped == "[project]"
-      continue
-    if not inProject or "=" not in stripped:
-      continue
-    key, _, raw = stripped.partition("=")
-    value = _tomlString(raw)
-    if key.strip() == "name":
-      name = value
-    elif key.strip() == "version":
-      version = value
-  return name, version
-
-
-def _tomlString(raw: str) -> str:
-  """The value of a simple TOML string, 'name = "x"  # note' giving 'x':
-  the text between the opening quote and its match, or the bare text
-  before any comment when unquoted."""
-  value = raw.strip()
-  quote = value[:1]
-  if quote in ("'", '"'):
-    end = value.find(quote, 1)
-    return value[1:end] if end > 0 else value[1:]
-  return value.partition("#")[0].strip()
+  return name or repoRoot.name, version or ""
 
 
 def defaultTheme() -> str:

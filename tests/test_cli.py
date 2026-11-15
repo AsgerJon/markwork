@@ -179,24 +179,16 @@ class TestCliEdges(EngineCase):
     with mock.patch("importlib.util.find_spec", return_value=object()):
       self.assertEqual(defaultTheme(), "furo")
 
-  def test_project_meta_without_tomllib(self):
-    self.write(
-        "pyproject.toml",
-        "[build-system]\n"
-        "requires = ['setuptools']\n"
-        "[project]\n"
-        "name = \"sample\"  # the name\n"
-        "version = 1.2 # unquoted\n"
-        "description = 'open\n"
-        "\n"
-        "[tool.other]\n"
-        "name = \"not-this\"\n",
-    )
-    with mock.patch("markwork._layout.tomllib", None):
-      self.assertEqual(projectMeta(self.root), ("sample", "1.2"))
-
   def test_project_meta_with_unnamed_project(self):
     self.write("pyproject.toml", "[tool.x]\nkey = 1\n")
+    self.assertEqual(projectMeta(self.root), (self.root.name, ""))
+    #  A name without a version, and a version without a name.
+    self.write("pyproject.toml", "[project]\nname = \"sample\"\n")
+    self.assertEqual(projectMeta(self.root), ("sample", ""))
+    self.write("pyproject.toml", "[project]\nversion = \"1.2\"\n")
+    self.assertEqual(projectMeta(self.root), (self.root.name, "1.2"))
+    #  A pyproject.toml that is no TOML names nothing.
+    self.write("pyproject.toml", "[project\nname = \"sample\"\n")
     self.assertEqual(projectMeta(self.root), (self.root.name, ""))
 
   def test_module_entry_point(self):

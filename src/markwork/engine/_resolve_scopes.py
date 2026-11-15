@@ -12,10 +12,6 @@ from ._scope import Scope
 _FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 _COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 
-#  The 'type X = ...' statement (PEP 695) exists from Python 3.12; on an
-#  older interpreter the empty tuple matches nothing.
-_TYPE_ALIAS = getattr(ast, "TypeAlias", ())
-
 
 def _parameters(args: ast.arguments) -> list:
   """Every parameter of a signature, in order, as ast.arg nodes."""
@@ -73,7 +69,7 @@ def resolveScopes(tree: ast.AST) -> tuple:
     return scope
 
   def typeScope(node: ast.AST, scope: Scope) -> tuple:
-    params = getattr(node, "type_params", None)
+    params = node.type_params
     if not params:
       return scope, []
     inner = open_("function", scope)
@@ -151,7 +147,7 @@ def resolveScopes(tree: ast.AST) -> tuple:
       scope.globals.update(node.names)
     elif isinstance(node, ast.Nonlocal):
       scope.nonlocals.update(node.names)
-    elif isinstance(node, _TYPE_ALIAS):
+    elif isinstance(node, ast.TypeAlias):
       scope.bind(node.name.id)
       inner, params = typeScope(node, scope)
       work += params

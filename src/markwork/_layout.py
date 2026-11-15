@@ -16,18 +16,8 @@ files.
 #  Apache-2.0 license
 #  Copyright (c) 2026 Asger Jon Vistisen
 
+import tomllib
 from pathlib import Path
-
-#  Python 3.10 has no tomllib; tomli is the same parser under its older
-#  name, and pytest pulls it in there. With neither, pyproject.toml is not
-#  read and detection falls back to convention.
-try:
-  import tomllib
-except ModuleNotFoundError:
-  try:
-    import tomli as tomllib
-  except ModuleNotFoundError:
-    tomllib = None
 
 #  Conventional top-level directory names that hold tests, docs or tooling
 #  rather than the package, consulted only to settle an ambiguity in a
@@ -43,9 +33,8 @@ _NOT_PACKAGES = frozenset(
 def readPyproject(repoRoot) -> dict:
   """Parse a repo's pyproject.toml, or return an empty mapping.
 
-  Returns an empty dict when there is no file, when it cannot be parsed,
-  or when no TOML parser is available (Python 3.10 without tomli), so
-  callers degrade to convention rather than fail.
+  Returns an empty dict when there is no file or when it cannot be parsed,
+  so callers degrade to convention rather than fail.
 
   Parameters
   ----------
@@ -57,8 +46,6 @@ def readPyproject(repoRoot) -> dict:
   dict
       The parsed pyproject.toml, or an empty mapping.
   """
-  if tomllib is None:
-    return {}
   path = Path(repoRoot) / "pyproject.toml"
   if not path.is_file():
     return {}

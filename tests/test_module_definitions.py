@@ -3,7 +3,6 @@
 #  Copyright (c) 2026 Asger Jon Vistisen
 
 import ast
-import sys
 import unittest
 
 from markwork.engine import moduleDefinitions
@@ -67,7 +66,6 @@ class TestModuleDefinitions(unittest.TestCase):
     self.assertNotIn("inner", defs)
     self.assertNotIn("member", defs)
 
-  @unittest.skipUnless(sys.version_info >= (3, 12), "type statement")
   def test_type_alias(self):
     defs = moduleDefinitions(ast.parse("type Pair = tuple[int, int]\n"))
     self.assertEqual(defs["Pair"], 1)

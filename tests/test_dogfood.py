@@ -17,18 +17,17 @@ from markwork.engine import SourceDocs, parseInit
 
 def hrefTargets(text):
   """Each (stub, line) named by a real 'href="<stub>.html#line-N"'
-  attribute. markwork's own tests hold that text in string literals too,
-  but there it is escaped source, never an attribute, so only real
-  attributes are read."""
+  attribute, that is, one that stands inside a tag. markwork's own tests
+  hold that text in string literals too, and a page shows those as source
+  text, where the quotes may stand unescaped but '<' never does. So what
+  follows a '<' up to the next '>' is a tag, and nothing else is."""
   results = []
-  index = text.find('href="')
-  while index != -1:
-    start = index + len('href="')
-    end = text.find('"', start)
-    stub, sep, line = text[start:end].partition(".html#line-")
+  for piece in text.split("<")[1:]:
+    tag = piece.partition(">")[0]
+    value = tag.partition('href="')[2].partition('"')[0]
+    stub, sep, line = value.partition(".html#line-")
     if sep:
       results.append((stub, line))
-    index = text.find('href="', end)
   return results
 
 
