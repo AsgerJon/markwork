@@ -1,0 +1,232 @@
+# Minor LTS: the public, official release button for the next minor line.
+# Publishes the next minor version (X.Y.0, raising Y) to PyPI as a
+# full release and deploys the GitHub Pages docs. Manual trigger only, and
+# run from 'main' alone. The release state machine in
+# 'bin/release_tooling/release_state.py' accepts the press only while a
+# release candidate cycle of the minor level is open, and then only when
+# 'bin/release_tooling/minor-lts.safety' read 'ALLOW' in the commit the
+# button was pressed on; see the 'safety' job.
+on:
+  workflow_dispatch:
+
+jobs:
+  safety:
+    # The guard. It refuses a press on any branch but 'main' before it
+    # reads or writes anything. On 'main' it decides the press from VERSION
+    # and, for a press that needs one, from the safety of this button, both
+    # as committed in the commit the button was pressed on; locks every
+    # safety back to 'STOP'; pushes the lock; tests the release tooling;
+    # and only then fails or lets the test matrix start. A refused run
+    # therefore still leaves every safety locked in the repository, and an
+    # arming is spent by the press of the button whatever the run does
+    # next.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the locked safeties
+    steps:
+      # The default checkout is the commit the button was pressed on, so
+      # the state of VERSION and of the safety at that moment decides.
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Decide and lock
+        run: |
+          python bin/release_tooling/safety_check.py \
+            minor-lts SAFETY_VERDICT
+      - name: Push the lock
+        run: |
+          git config user.name "Asger Jon Vistisen"
+          git config user.email "asgerjon2@gmail.com"
+          git add bin/release_tooling/*.safety
+          git diff --cached --quiet || git commit \
+            -m "minor-lts: safeties locked, verdict ${SAFETY_VERDICT}"
+          git push origin HEAD:${{ github.ref }}
+      - name: Test the release tooling
+        working-directory: bin/release_tooling
+        run: python -B -m unittest discover -s tests -t .
+      - name: Enforce the verdict
+        run: |
+          echo "$SAFETY_VERDICT_MESSAGE"
+          if [ "$SAFETY_VERDICT" != "ALLOW" ]; then
+            echo "::error::$SAFETY_VERDICT_MESSAGE"
+            exit 1
+          fi
+
+  test:
+    needs: safety
+    strategy:
+      matrix:
+        include:
+          - { python-version: '3.10', os: ubuntu-latest }
+          - { python-version: '3.11', os: ubuntu-latest }
+          - { python-version: '3.12', os: ubuntu-latest }
+          - { python-version: '3.13', os: ubuntu-latest }
+          - { python-version: '3.14', os: ubuntu-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest pytest-cov
+      - name: Run tests
+        run: pytest tests
+      - name: Coverage gate (3.14 only)
+        if: ${{ matrix.python-version == '3.14' }}
+        run: |
+          pytest tests --cov=markwork --cov=tests --cov-branch \
+            --cov-fail-under=100
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # trusted publishing (OIDC) to PyPI
+      contents: write   # push the version changes and cut the release
+    steps:
+      # The branch tip rather than the commit the button was pressed on:
+      # the version commit below has to sit on top of the lock commit the
+      # 'safety' job pushed.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      # Compute the next minor version from VERSION and expose it as
+      # VERSION_INFO in the environment for the steps below.
+      - name: Resolve next version
+        run: python bin/release_tooling/version_get.py minor-lts VERSION_INFO
+
+      # Write VERSION_INFO into pyproject.toml (the build reads its
+      # version from there), into src/markwork/__init__.py (so
+      # 'markwork.__version__' matches the published version) and into the
+      # README.md heading. docs/conf.py reads the version straight from
+      # the stamped pyproject.toml.
+      - name: Stamp version into pyproject, package and README
+        run: python bin/release_tooling/version_stamp.py VERSION_INFO
+
+      - name: Build
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      # PyPI can return success on upload while a backend or CDN incident
+      # quietly drops the file, so the workflow goes green but nothing is
+      # served. Poll until the version is actually live, and fail if it
+      # never appears, so the bump and tag below never run on a phantom
+      # publish.
+      - name: Verify the release is live on PyPI
+        run: python bin/release_tooling/pypi_verify.py VERSION_INFO
+
+      # Only reached once the release is confirmed live: advance the
+      # counters in VERSION, then commit VERSION + the stamped files.
+      - name: Bump version counters
+        run: python bin/release_tooling/version_bump.py minor-lts
+
+      - name: Commit version changes
+        run: |
+          git config user.name "Asger Jon Vistisen"
+          git config user.email "asgerjon2@gmail.com"
+          git add bin/release_tooling/VERSION pyproject.toml \
+            src/markwork/__init__.py README.md
+          git commit -m "LTS ${{ env.VERSION_INFO }}"
+          git push origin HEAD:${{ github.ref }}
+
+      - name: GitHub release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          tag: ${{ env.VERSION_INFO }}
+          name: ${{ env.VERSION_INFO }}
+          prerelease: false
+          generateReleaseNotes: true
+
+  docs:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: write   # to delete stale Pages artifacts on a re-run
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout (full history, for tags)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+
+      - name: Build all versions
+        run: |
+          set -e
+          mkdir -p site
+          sphinx-build -b html docs site/latest
+          versions='"latest"'
+          # Build each official tag that carries its own docs config.
+          # Pre-releases (dev / rc) are skipped so Pages only shows
+          # finished versions.
+          for tag in $(git tag --sort=-version:refname); do
+            case "$tag" in *dev*|*rc*) continue;; esac
+            if git cat-file -e "$tag:docs/conf.py" 2>/dev/null; then
+              git worktree add --detach ../version-build "$tag"
+              pip install ../version-build
+              sphinx-build -b html \
+                -D release="$tag" \
+                -D version="${tag%.*}" \
+                ../version-build/docs "site/$tag"
+              git worktree remove --force ../version-build
+              versions="$versions,\"$tag\""
+            fi
+          done
+          printf '[%s]\n' "$versions" > site/versions.json
+          printf '%s%s\n' \
+            '<!doctype html>' \
+            '<meta http-equiv="refresh" content="0; url=latest/">' \
+            > site/index.html
+
+      - name: Remove stale Pages artifacts from earlier attempts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          repo="${{ github.repository }}"
+          run_id="${{ github.run_id }}"
+          gh api "repos/$repo/actions/runs/$run_id/artifacts" \
+            --jq '.artifacts[] | select(.name=="github-pages") | .id' \
+          | while read -r id; do
+              gh api -X DELETE \
+                "repos/$repo/actions/artifacts/$id" || true
+            done
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

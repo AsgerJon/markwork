@@ -1,11 +1,61 @@
-# LTS: the public, official release button. Publishes the next official
-# version (X.Y.Z) to PyPI as a full release and deploys the GitHub Pages
-# docs. Manual trigger only.
+# Major LTS: the public, official release button for the next major line.
+# Publishes the next major version (X.0.0, raising X) to PyPI as a
+# full release and deploys the GitHub Pages docs. Manual trigger only, and
+# run from 'main' alone. The release state machine in
+# 'bin/release_tooling/release_state.py' accepts the press only while a
+# release candidate cycle of the major level is open, and then only when
+# 'bin/release_tooling/major-lts.safety' read 'ALLOW' in the commit the
+# button was pressed on; see the 'safety' job.
 on:
   workflow_dispatch:
 
 jobs:
+  safety:
+    # The guard. It refuses a press on any branch but 'main' before it
+    # reads or writes anything. On 'main' it decides the press from VERSION
+    # and, for a press that needs one, from the safety of this button, both
+    # as committed in the commit the button was pressed on; locks every
+    # safety back to 'STOP'; pushes the lock; tests the release tooling;
+    # and only then fails or lets the test matrix start. A refused run
+    # therefore still leaves every safety locked in the repository, and an
+    # arming is spent by the press of the button whatever the run does
+    # next.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the locked safeties
+    steps:
+      # The default checkout is the commit the button was pressed on, so
+      # the state of VERSION and of the safety at that moment decides.
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Decide and lock
+        run: |
+          python bin/release_tooling/safety_check.py \
+            major-lts SAFETY_VERDICT
+      - name: Push the lock
+        run: |
+          git config user.name "Asger Jon Vistisen"
+          git config user.email "asgerjon2@gmail.com"
+          git add bin/release_tooling/*.safety
+          git diff --cached --quiet || git commit \
+            -m "major-lts: safeties locked, verdict ${SAFETY_VERDICT}"
+          git push origin HEAD:${{ github.ref }}
+      - name: Test the release tooling
+        working-directory: bin/release_tooling
+        run: python -B -m unittest discover -s tests -t .
+      - name: Enforce the verdict
+        run: |
+          echo "$SAFETY_VERDICT_MESSAGE"
+          if [ "$SAFETY_VERDICT" != "ALLOW" ]; then
+            echo "::error::$SAFETY_VERDICT_MESSAGE"
+            exit 1
+          fi
+
   test:
+    needs: safety
     strategy:
       matrix:
         include:
@@ -16,9 +66,9 @@ jobs:
           - { python-version: '3.14', os: ubuntu-latest }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -41,9 +91,14 @@ jobs:
       id-token: write   # trusted publishing (OIDC) to PyPI
       contents: write   # push the version changes and cut the release
     steps:
-      - uses: actions/checkout@v5
+      # The branch tip rather than the commit the button was pressed on:
+      # the version commit below has to sit on top of the lock commit the
+      # 'safety' job pushed.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Install build tooling
@@ -51,34 +106,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
 
-      # Compute the official version from VERSION and expose it as
+      # Compute the next major version from VERSION and expose it as
       # VERSION_INFO in the environment for the steps below.
       - name: Resolve next version
-        run: python version_get.py lts VERSION_INFO
+        run: python bin/release_tooling/version_get.py major-lts VERSION_INFO
 
       # Write VERSION_INFO into pyproject.toml (the build reads its
-      # version from there) and into src/markwork/__init__.py (so
-      # 'markwork.__version__' matches the published version). docs/conf.py
-      # reads the version straight from the stamped pyproject.toml.
-      - name: Stamp version into pyproject and package
-        run: |
-          python - <<'PY'
-          import os
-          version = os.environ["VERSION_INFO"]
-          targets = [
-              ("pyproject.toml", "version", 'version = "%s"'),
-              ("src/markwork/__init__.py", "__version__",
-               "__version__ = \"%s\""),
-          ]
-          for path, prefix, template in targets:
-              lines = open(path, encoding="utf-8").read().splitlines()
-              for i, line in enumerate(lines):
-                  if line.lstrip().startswith(prefix) and "=" in line:
-                      lines[i] = template % version
-                      break
-              body = "\n".join(lines) + "\n"
-              open(path, "w", encoding="utf-8").write(body)
-          PY
+      # version from there), into src/markwork/__init__.py (so
+      # 'markwork.__version__' matches the published version) and into the
+      # README.md heading. docs/conf.py reads the version straight from
+      # the stamped pyproject.toml.
+      - name: Stamp version into pyproject, package and README
+        run: python bin/release_tooling/version_stamp.py VERSION_INFO
 
       - name: Build
         run: python -m build
@@ -92,43 +131,19 @@ jobs:
       # never appears, so the bump and tag below never run on a phantom
       # publish.
       - name: Verify the release is live on PyPI
-        run: |
-          python - <<'PY'
-          import json, os, sys, time
-          import urllib.error, urllib.request
-          version = os.environ["VERSION_INFO"]
-          want = "".join(c for c in version.lower() if c.isalnum())
-          url = "https://pypi.org/pypi/markwork/json"
-          headers = {"User-Agent": "markwork-release-check"}
-          deadline = time.time() + 600
-          #  Any transient error (a 404 before the file is served, a 5xx
-          #  during an incident, a timeout) just means "not yet": keep
-          #  polling until the deadline, then fail.
-          while time.time() < deadline:
-            try:
-              request = urllib.request.Request(url, headers=headers)
-              data = json.load(urllib.request.urlopen(request, timeout=20))
-              keys = data.get("releases", {})
-              if any("".join(c for c in k.lower() if c.isalnum()) == want
-                     for k in keys):
-                print("Confirmed %s is live on PyPI." % version)
-                sys.exit(0)
-            except (urllib.error.URLError, TimeoutError, ValueError):
-              pass
-            time.sleep(20)
-          sys.exit("%s never appeared on PyPI." % version)
-          PY
+        run: python bin/release_tooling/pypi_verify.py VERSION_INFO
 
       # Only reached once the release is confirmed live: advance the
       # counters in VERSION, then commit VERSION + the stamped files.
       - name: Bump version counters
-        run: python version_bump.py lts
+        run: python bin/release_tooling/version_bump.py major-lts
 
       - name: Commit version changes
         run: |
           git config user.name "Asger Jon Vistisen"
           git config user.email "asgerjon2@gmail.com"
-          git add VERSION pyproject.toml src/markwork/__init__.py
+          git add bin/release_tooling/VERSION pyproject.toml \
+            src/markwork/__init__.py README.md
           git commit -m "LTS ${{ env.VERSION_INFO }}"
           git push origin HEAD:${{ github.ref }}
 
@@ -153,12 +168,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout (full history, for tags)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Dependencies
@@ -208,10 +223,10 @@ jobs:
             done
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

@@ -94,6 +94,56 @@ so they land exactly rather than by guesswork. To preview the whole site
 locally, run `build_docs.sh`, which builds the pages into `docs/_build`
 and opens them in the browser.
 
+## Releases
+
+A release is published by pressing a button, never by hand. There are
+nine buttons, one GitHub workflow each, named level first and kind
+second: `micro-dev`, `micro-rc` and `micro-lts`, and the same three for
+`minor` and `major`. A workflow starts only when its button is pressed.
+No workflow runs on a push or on a pull request.
+
+The file `bin/release_tooling/VERSION` holds the state the buttons
+read, and `release_state.py` beside it decides what a press does. A
+`dev` press opens a cycle of development builds, or publishes the next
+build of the open one. The `rc` press of the same level closes that
+cycle with a release candidate, and the `lts` press publishes the
+release, which needs at least one release candidate before it. A press
+that makes no sense in the present state is refused in the first job of
+its workflow.
+
+The presses that change the kind of cycle need a safety: the press that
+opens a cycle, the first release candidate, and the release. The safety
+of a button is the file `<button>.safety` beside `VERSION`. It is armed
+by replacing its one word `STOP` with `ALLOW` and committing, right
+before the press, and every press locks all nine again.
+
+Before it publishes, a workflow runs the suite on every supported
+Python, and a release candidate or a release also has to hold the 100%
+branch coverage. It stamps the version into `pyproject.toml`,
+`src/markwork/__init__.py` and the heading of `README.md`, so none of
+the three is edited by hand, and neither is `VERSION`. After the upload
+it waits until PyPI serves the new version, and only then records the
+press in `VERSION` and cuts the tag.
+
+The upload goes through PyPI's trusted publishing, which knows a
+workflow by its file name: a workflow that is added or renamed has to
+be registered as a publisher of the project on PyPI before its button
+can publish.
+
+The buttons run on `main` alone, and every press names its version from
+the one `VERSION` file. The tooling therefore publishes one line of
+releases: a 0.1.3 cannot be published once 0.2.0 is out. The tooling has
+tests of its own:
+
+```terminaloutput
+cd bin/release_tooling
+python -m unittest discover -s tests -t .
+```
+
+The changelog covers the stable releases. Development builds and
+release candidates are not logged on their own; their changes are rolled
+into the release they lead up to.
+
 ## STYLE
 
 Horizontal scrolling is the worst! No line shall exceed 77 characters

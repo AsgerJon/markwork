@@ -17,18 +17,15 @@ buildDocs() {
   #  (markwork regenerates docs/_source on every build.)
   rm -rf docs/_source docs/_build
 
-  #  Header version: the next LTS version, read from VERSION (the single
-  #  source of truth) via version_get.py, so the local preview shows the
-  #  version this build would publish as. Passed via -D to override, for
-  #  this build only, the value conf.py reads from pyproject.toml.
-  nextRelease=$(python3 version_get.py lts)
-  nextVersion="${nextRelease%.*}"
+  #  Header version: conf.py reads it from pyproject.toml, so the local
+  #  preview shows the version the last press of a release button
+  #  stamped. The version of the next press is not known here: it follows
+  #  from the button pressed, see bin/release_tooling/VERSION.
 
   #  Build, teeing the full log to a file while showing only the
   #  progress lines (warnings/errors are filtered from the screen
   #  but kept in the log).
-  sphinx-build -b html -D release="$nextRelease" -D version="$nextVersion" \
-    "$sourceDir" "$outDir" 2>&1 \
+  sphinx-build -b html "$sourceDir" "$outDir" 2>&1 \
     | tee "$logFile" \
     | grep -vE 'WARNING|ERROR|SyntaxWarning' || true
 
