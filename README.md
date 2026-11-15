@@ -2,7 +2,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Framework: Sphinx](https://img.shields.io/badge/Sphinx-extension-1A5276.svg)](https://www.sphinx-doc.org/)
 
-# markwork v0.1.0 (alpha)
+# markwork v0.1.2-dev0 (development build)
 
 **markwork** publishes your source as your documentation. The page for a
 file *is* that file: rendered verbatim, syntax-highlighted, and with every
